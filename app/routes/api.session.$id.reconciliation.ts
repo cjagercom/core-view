@@ -1,5 +1,5 @@
 import type { ActionFunctionArgs } from 'react-router';
-import { streamText } from 'ai';
+import { generateText } from 'ai';
 import { getDb } from '~/lib/db';
 import { getAnthropicModel, buildLLMContext, RECONCILIATION_SYSTEM_PROMPT } from '~/lib/llm';
 import { aggregateFeedback } from '~/engine/feedback-scoring';
@@ -184,25 +184,16 @@ export async function action({ request, params }: ActionFunctionArgs) {
     llmMessages.push({ role: msg.role, content: msg.content });
   }
 
+  // Resume: return full conversation history so the UI can restore state
+  if (isStart && existingMessages.length > 0) {
+    const lastMsg = existingMessages[existingMessages.length - 1];
+    if (lastMsg.role === 'assistant' && lastMsg.content.trim()) {
+      return Response.json({ resume: true, messages: existingMessages });
+    }
+  }
+
   const model = getAnthropicModel();
   const llmStartTime = Date.now();
-  const result = streamText({
-    model,
-    system: RECONCILIATION_SYSTEM_PROMPT,
-    messages: llmMessages,
-  });
-
-  result.usage
-    .then((usage) => {
-      trackEventServer('llm_call', {
-        callType: 'reconciliation',
-        sessionId: id,
-        inputTokens: usage?.promptTokens ?? 0,
-        outputTokens: usage?.completionTokens ?? 0,
-        durationMs: Date.now() - llmStartTime,
-      });
-    })
-    .catch(() => {});
 
   if (!isStart) {
     sql`
@@ -213,107 +204,104 @@ export async function action({ request, params }: ActionFunctionArgs) {
     `.catch(() => {});
   }
 
-  const response = result.toTextStreamResponse();
-  const { readable, writable } = new TransformStream();
-  const writer = writable.getWriter();
-  const reader = response.body!.getReader();
-  let fullText = '';
+  let fullText: string;
+  try {
+    const result = await generateText({
+      model,
+      system: RECONCILIATION_SYSTEM_PROMPT,
+      messages: llmMessages,
+      maxTokens: 4096,
+    });
+    fullText = result.text;
 
-  (async () => {
-    let streamError = false;
-    try {
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        fullText += new TextDecoder().decode(value);
-        await writer.write(value);
+    trackEventServer('llm_call', {
+      callType: 'reconciliation',
+      sessionId: id,
+      inputTokens: result.usage?.promptTokens ?? 0,
+      outputTokens: result.usage?.completionTokens ?? 0,
+      durationMs: Date.now() - llmStartTime,
+    });
+  } catch (err) {
+    console.error('[reconciliation] LLM call failed:', err);
+    const msg = err instanceof Error ? err.message : 'Unknown error';
+    return Response.json({ error: `AI error: ${msg}` }, { status: 502 });
+  }
+
+  if (!fullText.trim()) {
+    return Response.json({ error: 'Empty response from AI — please retry' }, { status: 502 });
+  }
+
+  // Save assistant response and apply adjustments
+  const updatedMessages = [...existingMessages, { role: 'assistant' as const, content: fullText.trim() }];
+
+  try {
+    let jsonStr = fullText.trim();
+    const fenceMatch = jsonStr.match(/```(?:json)?\s*([\s\S]*?)```/);
+    if (fenceMatch) jsonStr = fenceMatch[1].trim();
+    jsonStr = jsonStr.replace(/:\s*\+(\d)/g, ': $1');
+    const parsed = JSON.parse(jsonStr);
+
+    if (parsed.complete) {
+      await sql`
+        UPDATE sessions SET
+          reconciliation_messages = ${JSON.stringify(updatedMessages)}::jsonb,
+          reconciliation_adjustments = ${JSON.stringify(parsed)}::jsonb,
+          profile_v2 = profile,
+          last_active_at = NOW()
+        WHERE id = ${id}
+      `;
+
+      const adjustments = parsed.dimension_adjustments as Record<string, number>;
+      const boosts = parsed.confidence_boosts as Record<string, number>;
+      const dims = [...profile.dimensions];
+
+      for (const d of dims) {
+        const adj = adjustments[d.dimensionId] ?? 0;
+        const boost = boosts[d.dimensionId] ?? 0;
+        d.score = Math.round(Math.min(100, Math.max(0, d.score + adj)));
+        d.confidence += boost;
       }
-    } catch (err) {
-      streamError = true;
-      try {
-        await writer.abort(err);
-      } catch {
-        /* already closed */
-      }
-    } finally {
-      if (!streamError) await writer.close();
 
-      // Don't save empty assistant messages — they'd cause Anthropic API errors on retry
-      if (!fullText.trim()) return;
-      const updatedMessages = [...existingMessages, { role: 'assistant' as const, content: fullText.trim() }];
+      const { matchArchetype } = await import('~/engine/archetypes');
+      const newArchetype = matchArchetype(dims);
+      const newDistance = Math.sqrt(
+        DIMENSIONS.reduce((sum, dim) => {
+          const score = dims.find((s) => s.dimensionId === dim)?.score ?? 50;
+          return sum + (score - newArchetype.centroid[dim]) ** 2;
+        }, 0),
+      );
 
-      try {
-        let jsonStr = fullText.trim();
-        const fenceMatch = jsonStr.match(/```(?:json)?\s*([\s\S]*?)```/);
-        if (fenceMatch) jsonStr = fenceMatch[1].trim();
-        // Strip leading '+' on numbers (e.g. +8 → 8) — JSON doesn't allow it
-        jsonStr = jsonStr.replace(/:\s*\+(\d)/g, ': $1');
-        const parsed = JSON.parse(jsonStr);
+      const updatedProfile = {
+        ...profile,
+        dimensions: dims,
+        archetypeId: newArchetype.id,
+        archetypeName: newArchetype.name,
+        archetypeDistance: newDistance,
+      };
 
-        if (parsed.complete) {
-          await sql`
-            UPDATE sessions SET
-              reconciliation_messages = ${JSON.stringify(updatedMessages)}::jsonb,
-              reconciliation_adjustments = ${JSON.stringify(parsed)}::jsonb,
-              profile_v2 = profile,
-              last_active_at = NOW()
-            WHERE id = ${id}
-          `;
-
-          // Apply adjustments
-          const adjustments = parsed.dimension_adjustments as Record<string, number>;
-          const boosts = parsed.confidence_boosts as Record<string, number>;
-          const dims = [...profile.dimensions];
-
-          for (const d of dims) {
-            const adj = adjustments[d.dimensionId] ?? 0;
-            const boost = boosts[d.dimensionId] ?? 0;
-            d.score = Math.round(Math.min(100, Math.max(0, d.score + adj)));
-            d.confidence += boost;
-          }
-
-          const { matchArchetype } = await import('~/engine/archetypes');
-          const newArchetype = matchArchetype(dims);
-          const newDistance = Math.sqrt(
-            DIMENSIONS.reduce((sum, dim) => {
-              const score = dims.find((s) => s.dimensionId === dim)?.score ?? 50;
-              return sum + (score - newArchetype.centroid[dim]) ** 2;
-            }, 0),
-          );
-
-          const updatedProfile = {
-            ...profile,
-            dimensions: dims,
-            archetypeId: newArchetype.id,
-            archetypeName: newArchetype.name,
-            archetypeDistance: newDistance,
-          };
-
-          await sql`
-            UPDATE sessions SET
-              profile = ${JSON.stringify(updatedProfile)}::jsonb
-            WHERE id = ${id}
-          `;
-        } else {
-          await sql`
-            UPDATE sessions SET
-              reconciliation_messages = ${JSON.stringify(updatedMessages)}::jsonb,
-              last_active_at = NOW()
-            WHERE id = ${id}
-          `;
-        }
-      } catch {
-        await sql`
-          UPDATE sessions SET
-            reconciliation_messages = ${JSON.stringify(updatedMessages)}::jsonb,
-            last_active_at = NOW()
-          WHERE id = ${id}
-        `.catch(() => {});
-      }
+      await sql`
+        UPDATE sessions SET
+          profile = ${JSON.stringify(updatedProfile)}::jsonb
+        WHERE id = ${id}
+      `;
+    } else {
+      await sql`
+        UPDATE sessions SET
+          reconciliation_messages = ${JSON.stringify(updatedMessages)}::jsonb,
+          last_active_at = NOW()
+        WHERE id = ${id}
+      `;
     }
-  })();
+  } catch {
+    await sql`
+      UPDATE sessions SET
+        reconciliation_messages = ${JSON.stringify(updatedMessages)}::jsonb,
+        last_active_at = NOW()
+      WHERE id = ${id}
+    `.catch(() => {});
+  }
 
-  return new Response(readable, {
-    headers: response.headers,
+  return new Response(fullText, {
+    headers: { 'Content-Type': 'text/plain; charset=utf-8' },
   });
 }

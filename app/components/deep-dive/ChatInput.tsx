@@ -16,20 +16,31 @@ export function ChatInput({ onSend, disabled, placeholder = 'Type your answer...
     if (!disabled) inputRef.current?.focus();
   }, [disabled]);
 
+  const autoResize = () => {
+    const el = inputRef.current;
+    if (!el) return;
+    el.style.height = 'auto';
+    el.style.height = `${Math.min(el.scrollHeight, 120)}px`;
+  };
+
   const handleSubmit = () => {
     const trimmed = value.trim();
     if (!trimmed || disabled) return;
     onSend(trimmed);
     setValue('');
+    if (inputRef.current) inputRef.current.style.height = 'auto';
   };
 
   return (
-    <div className="flex items-end gap-2">
+    <div className="flex items-center gap-2">
       <div className="relative flex-1">
         <textarea
           ref={inputRef}
           value={value}
-          onChange={(e) => setValue(e.target.value)}
+          onChange={(e) => {
+            setValue(e.target.value);
+            autoResize();
+          }}
           onKeyDown={(e) => {
             if (e.key === 'Enter' && !e.shiftKey) {
               e.preventDefault();
@@ -43,7 +54,7 @@ export function ChatInput({ onSend, disabled, placeholder = 'Type your answer...
                      text-sm sm:text-base text-ink placeholder:text-ink-muted
                      focus:outline-none focus:border-accent
                      disabled:opacity-50 disabled:cursor-not-allowed"
-          style={{ minHeight: '48px', maxHeight: '120px' }}
+          style={{ minHeight: '48px', maxHeight: '120px', overflow: 'hidden' }}
         />
         {disabled && (
           <motion.div

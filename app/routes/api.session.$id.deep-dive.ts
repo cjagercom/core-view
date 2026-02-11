@@ -1,5 +1,5 @@
 import type { ActionFunctionArgs } from 'react-router';
-import { streamText } from 'ai';
+import { generateText } from 'ai';
 import { getDb } from '~/lib/db';
 import { getAnthropicModel, buildLLMContext, DEEP_DIVE_SYSTEM_PROMPT } from '~/lib/llm';
 import type { DimensionId } from '~/types/questions';
@@ -171,26 +171,16 @@ export async function action({ request, params }: ActionFunctionArgs) {
     }
   }
 
+  // Resume: return full conversation history so the UI can restore state
+  if (isStart && existingMessages.length > 0) {
+    const lastMsg = existingMessages[existingMessages.length - 1];
+    if (lastMsg.role === 'assistant' && lastMsg.content.trim()) {
+      return Response.json({ resume: true, messages: existingMessages });
+    }
+  }
+
   const model = getAnthropicModel();
   const llmStartTime = Date.now();
-  const result = streamText({
-    model,
-    system: DEEP_DIVE_SYSTEM_PROMPT,
-    messages: llmMessages,
-  });
-
-  // Track LLM call after streaming completes
-  result.usage
-    .then((usage) => {
-      trackEventServer('llm_call', {
-        callType: 'deep_dive',
-        sessionId: id,
-        inputTokens: usage?.promptTokens ?? 0,
-        outputTokens: usage?.completionTokens ?? 0,
-        durationMs: Date.now() - llmStartTime,
-      });
-    })
-    .catch(() => {});
 
   // Save the user message to DB (fire-and-forget)
   if (!isStart) {
@@ -202,116 +192,106 @@ export async function action({ request, params }: ActionFunctionArgs) {
     `.catch(() => {});
   }
 
-  // We need to collect the full response to save it
-  const response = result.toTextStreamResponse();
+  let fullText: string;
+  try {
+    const result = await generateText({
+      model,
+      system: DEEP_DIVE_SYSTEM_PROMPT,
+      messages: llmMessages,
+      maxTokens: 4096,
+    });
+    fullText = result.text;
 
-  // Collect and save the assistant response after streaming
-  // We use a TransformStream to tee the response
-  const { readable, writable } = new TransformStream();
-  const writer = writable.getWriter();
-  const reader = response.body!.getReader();
-  let fullText = '';
+    trackEventServer('llm_call', {
+      callType: 'deep_dive',
+      sessionId: id,
+      inputTokens: result.usage?.promptTokens ?? 0,
+      outputTokens: result.usage?.completionTokens ?? 0,
+      durationMs: Date.now() - llmStartTime,
+    });
+  } catch (err) {
+    console.error('[deep-dive] LLM call failed:', err);
+    const msg = err instanceof Error ? err.message : 'Unknown error';
+    return Response.json({ error: `AI error: ${msg}` }, { status: 502 });
+  }
 
-  (async () => {
-    let streamError = false;
-    try {
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        fullText += new TextDecoder().decode(value);
-        await writer.write(value);
+  if (!fullText.trim()) {
+    return Response.json({ error: 'Empty response from AI — please retry' }, { status: 502 });
+  }
+
+  // Save assistant response and apply adjustments
+  const updatedMessages = [...existingMessages, { role: 'assistant' as const, content: fullText.trim() }];
+
+  // Check if the response is a completion (fire-and-forget DB writes)
+  try {
+    let jsonStr = fullText.trim();
+    const fenceMatch = jsonStr.match(/```(?:json)?\s*([\s\S]*?)```/);
+    if (fenceMatch) jsonStr = fenceMatch[1].trim();
+    jsonStr = jsonStr.replace(/:\s*\+(\d)/g, ': $1');
+    const parsed = JSON.parse(jsonStr);
+
+    if (parsed.complete) {
+      await sql`
+        UPDATE sessions SET
+          deep_dive_messages = ${JSON.stringify(updatedMessages)}::jsonb,
+          deep_dive_adjustments = ${JSON.stringify(parsed)}::jsonb,
+          profile_v1 = profile,
+          last_active_at = NOW()
+        WHERE id = ${id}
+      `;
+
+      const adjustments = parsed.dimension_adjustments as Record<string, number>;
+      const boosts = parsed.confidence_boosts as Record<string, number>;
+      const dims = [...profile.dimensions];
+
+      for (const d of dims) {
+        const adj = adjustments[d.dimensionId] ?? 0;
+        const boost = boosts[d.dimensionId] ?? 0;
+        d.score = Math.round(Math.min(100, Math.max(0, d.score + adj)));
+        d.confidence += boost;
       }
-    } catch (err) {
-      streamError = true;
-      try {
-        await writer.abort(err);
-      } catch {
-        /* already closed */
-      }
-    } finally {
-      if (!streamError) await writer.close();
 
-      // Don't save empty assistant messages — they'd cause Anthropic API errors on retry
-      if (!fullText.trim()) return;
-      const updatedMessages = [...existingMessages, { role: 'assistant' as const, content: fullText.trim() }];
+      const { matchArchetype } = await import('~/engine/archetypes');
+      const newArchetype = matchArchetype(dims);
+      const DIMENSIONS: DimensionId[] = ['energy', 'processing', 'uncertainty', 'social', 'response'];
+      const newDistance = Math.sqrt(
+        DIMENSIONS.reduce((sum, dim) => {
+          const score = dims.find((s) => s.dimensionId === dim)?.score ?? 50;
+          return sum + (score - newArchetype.centroid[dim]) ** 2;
+        }, 0),
+      );
 
-      // Check if the response is a completion
-      try {
-        let jsonStr = fullText.trim();
-        const fenceMatch = jsonStr.match(/```(?:json)?\s*([\s\S]*?)```/);
-        if (fenceMatch) jsonStr = fenceMatch[1].trim();
-        // Strip leading '+' on numbers (e.g. +8 → 8) — JSON doesn't allow it
-        jsonStr = jsonStr.replace(/:\s*\+(\d)/g, ': $1');
-        const parsed = JSON.parse(jsonStr);
+      const updatedProfile = {
+        ...profile,
+        dimensions: dims,
+        archetypeId: newArchetype.id,
+        archetypeName: newArchetype.name,
+        archetypeDistance: newDistance,
+      };
 
-        if (parsed.complete) {
-          // Save completion and snapshot
-          await sql`
-            UPDATE sessions SET
-              deep_dive_messages = ${JSON.stringify(updatedMessages)}::jsonb,
-              deep_dive_adjustments = ${JSON.stringify(parsed)}::jsonb,
-              profile_v1 = profile,
-              last_active_at = NOW()
-            WHERE id = ${id}
-          `;
-
-          // Apply adjustments to profile
-          const adjustments = parsed.dimension_adjustments as Record<string, number>;
-          const boosts = parsed.confidence_boosts as Record<string, number>;
-          const dims = [...profile.dimensions];
-
-          for (const d of dims) {
-            const adj = adjustments[d.dimensionId] ?? 0;
-            const boost = boosts[d.dimensionId] ?? 0;
-            d.score = Math.round(Math.min(100, Math.max(0, d.score + adj)));
-            d.confidence += boost;
-          }
-
-          // Re-match archetype
-          const { matchArchetype } = await import('~/engine/archetypes');
-          const newArchetype = matchArchetype(dims);
-          const DIMENSIONS: DimensionId[] = ['energy', 'processing', 'uncertainty', 'social', 'response'];
-          const newDistance = Math.sqrt(
-            DIMENSIONS.reduce((sum, dim) => {
-              const score = dims.find((s) => s.dimensionId === dim)?.score ?? 50;
-              return sum + (score - newArchetype.centroid[dim]) ** 2;
-            }, 0),
-          );
-
-          const updatedProfile = {
-            ...profile,
-            dimensions: dims,
-            archetypeId: newArchetype.id,
-            archetypeName: newArchetype.name,
-            archetypeDistance: newDistance,
-          };
-
-          await sql`
-            UPDATE sessions SET
-              profile = ${JSON.stringify(updatedProfile)}::jsonb
-            WHERE id = ${id}
-          `;
-        } else {
-          await sql`
-            UPDATE sessions SET
-              deep_dive_messages = ${JSON.stringify(updatedMessages)}::jsonb,
-              last_active_at = NOW()
-            WHERE id = ${id}
-          `;
-        }
-      } catch {
-        // JSON parse failed — just save the message
-        await sql`
-          UPDATE sessions SET
-            deep_dive_messages = ${JSON.stringify(updatedMessages)}::jsonb,
-            last_active_at = NOW()
-          WHERE id = ${id}
-        `.catch(() => {});
-      }
+      await sql`
+        UPDATE sessions SET
+          profile = ${JSON.stringify(updatedProfile)}::jsonb
+        WHERE id = ${id}
+      `;
+    } else {
+      await sql`
+        UPDATE sessions SET
+          deep_dive_messages = ${JSON.stringify(updatedMessages)}::jsonb,
+          last_active_at = NOW()
+        WHERE id = ${id}
+      `;
     }
-  })();
+  } catch {
+    await sql`
+      UPDATE sessions SET
+        deep_dive_messages = ${JSON.stringify(updatedMessages)}::jsonb,
+        last_active_at = NOW()
+      WHERE id = ${id}
+    `.catch(() => {});
+  }
 
-  return new Response(readable, {
-    headers: response.headers,
+  return new Response(fullText, {
+    headers: { 'Content-Type': 'text/plain; charset=utf-8' },
   });
 }

@@ -98,30 +98,69 @@ export function DeepDiveChat({ sessionId, endpoint, onComplete }: DeepDiveChatPr
         }
 
         // Parse the complete response
-        // The LLM might wrap JSON in markdown code fences — strip them
-        let jsonStr = accumulated.trim();
-        if (!jsonStr) {
+        const rawText = accumulated.trim();
+        if (!rawText) {
           throw new Error('Empty response from server');
         }
-        const fenceMatch = jsonStr.match(/```(?:json)?\s*([\s\S]*?)```/);
-        if (fenceMatch) jsonStr = fenceMatch[1].trim();
-        // Strip leading '+' on numbers (e.g. +8 → 8) — JSON doesn't allow it
-        jsonStr = jsonStr.replace(/:\s*\+(\d)/g, ': $1');
 
         let parsed: Record<string, unknown>;
         try {
-          parsed = JSON.parse(jsonStr);
+          // Try parsing as-is first (handles structured JSON responses like resume)
+          parsed = JSON.parse(rawText);
         } catch {
-          // Try to extract JSON object from mixed text (LLM sometimes adds preamble)
-          const jsonMatch = jsonStr.match(/\{[\s\S]*\}/);
-          if (jsonMatch) {
-            parsed = JSON.parse(jsonMatch[0].replace(/:\s*\+(\d)/g, ': $1'));
-          } else {
-            throw new Error('Invalid response format — please retry');
+          // LLM might wrap JSON in markdown code fences — strip them
+          let jsonStr = rawText;
+          const fenceMatch = jsonStr.match(/```(?:json)?\s*([\s\S]*?)```/);
+          if (fenceMatch) jsonStr = fenceMatch[1].trim();
+          // Strip leading '+' on numbers (e.g. +8 → 8) — JSON doesn't allow it
+          jsonStr = jsonStr.replace(/:\s*\+(\d)/g, ': $1');
+          try {
+            parsed = JSON.parse(jsonStr);
+          } catch {
+            // Try to extract JSON object from mixed text (LLM sometimes adds preamble)
+            const jsonMatch = jsonStr.match(/\{[\s\S]*\}/);
+            if (jsonMatch) {
+              parsed = JSON.parse(jsonMatch[0].replace(/:\s*\+(\d)/g, ': $1'));
+            } else {
+              throw new Error('Invalid response format — please retry');
+            }
           }
         }
 
         setStreaming(false);
+
+        if (parsed.resume && Array.isArray(parsed.messages)) {
+          // Restore conversation from server (e.g. after page refresh)
+          const restored: Message[] = [];
+          let assistantCount = 0;
+          for (const msg of parsed.messages as { role: string; content: string }[]) {
+            if (msg.role === 'assistant') {
+              // Parse the assistant JSON to extract the question text
+              try {
+                let qStr = msg.content.trim();
+                const fm = qStr.match(/```(?:json)?\s*([\s\S]*?)```/);
+                if (fm) qStr = fm[1].trim();
+                qStr = qStr.replace(/:\s*\+(\d)/g, ': $1');
+                const qParsed = JSON.parse(qStr);
+                restored.push({ role: 'assistant', content: qParsed.question || msg.content });
+                assistantCount++;
+                // Set the last question as current
+                if (msg === (parsed.messages as unknown[])[parsed.messages.length - 1]) {
+                  setCurrentQuestion(qParsed as LLMQuestion);
+                }
+              } catch {
+                restored.push({ role: 'assistant', content: msg.content });
+                assistantCount++;
+              }
+            } else {
+              restored.push({ role: 'user', content: msg.content });
+            }
+          }
+          setMessages(restored);
+          setQuestionCount(assistantCount);
+          scrollToBottom();
+          return;
+        }
 
         if (parsed.complete) {
           // Session complete

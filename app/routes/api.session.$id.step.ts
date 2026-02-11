@@ -27,20 +27,27 @@ export async function action({ request, params }: ActionFunctionArgs) {
 
   const sql = getDb();
 
-  const rows = await sql`SELECT id, responses, status FROM sessions WHERE id = ${id}`;
+  const rows = await sql`SELECT id, responses, status, current_step FROM sessions WHERE id = ${id}`;
   if (rows.length === 0) {
     return Response.json({ error: 'Session not found' }, { status: 404 });
   }
 
   const session = rows[0];
-  if (session.status !== 'in_progress') {
-    return Response.json({ error: 'Session is not in progress' }, { status: 400 });
-  }
-
-  const existingResponses = (session.responses as SessionResponse[]) || [];
-  const allResponses = [...existingResponses, ...body.responses];
   const nextStep = getNextStep(body.step);
   const isComplete = body.step === 'processing';
+
+  // Idempotent: if this step was already processed, return success without modifying
+  const currentIdx = STEP_ORDER.indexOf(session.current_step as WizardStep);
+  const incomingIdx = STEP_ORDER.indexOf(body.step);
+  if (session.status !== 'in_progress' || (incomingIdx >= 0 && currentIdx > incomingIdx)) {
+    return Response.json({ nextStep, success: true });
+  }
+
+  // Merge responses, deduplicating by questionId so late/retry calls don't create duplicates
+  const existingResponses = (session.responses as SessionResponse[]) || [];
+  const seen = new Set(existingResponses.map((r) => r.questionId));
+  const newResponses = body.responses.filter((r) => !seen.has(r.questionId));
+  const allResponses = [...existingResponses, ...newResponses];
 
   await sql`
     UPDATE sessions SET
@@ -57,7 +64,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
   trackEventServer('step_completed', { sessionId: id, step: body.step });
 
   // Track individual question answers
-  for (const r of body.responses) {
+  for (const r of newResponses) {
     if (r.questionType === 'warmup' || r.questionType === 'scenario' || r.questionType === 'reflection') {
       trackEventServer('question_answered', {
         sessionId: id,
