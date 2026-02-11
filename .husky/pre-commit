@@ -1,0 +1,4 @@
+pnpm exec lint-staged
+pnpm knip
+pnpm test
+pnpm build

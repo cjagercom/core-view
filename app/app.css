@@ -1,0 +1,73 @@
+@import url("https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,700;1,400&family=DM+Serif+Display&display=swap");
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "DM Sans", system-ui, sans-serif;
+  --font-serif: "DM Serif Display", Georgia, serif;
+
+  /* Core palette — warm stone */
+  --color-ink: #1c1917;
+  --color-ink-soft: #57534e;
+  --color-ink-muted: #a8a29e;
+  --color-paper: #fafaf9;
+  --color-paper-warm: #f5f5f4;
+  --color-paper-dark: #e7e5e4;
+
+  /* Accent — deep warm teal */
+  --color-accent: #115e59;
+  --color-accent-mid: #0d9488;
+  --color-accent-light: #ccfbf1;
+  --color-accent-glow: #f0fdfa;
+
+  /* Semantic */
+  --color-warm: #d97706;
+  --color-warm-light: #fef3c7;
+  --color-error: #dc2626;
+  --color-success: #059669;
+
+  /* Radar chart */
+  --color-radar-fill: rgba(13, 148, 136, 0.15);
+  --color-radar-stroke: #0d9488;
+  --color-radar-grid: #e7e5e4;
+  --color-radar-feedback-fill: rgba(217, 119, 6, 0.12);
+  --color-radar-feedback-stroke: #d97706;
+
+  /* Legacy aliases for compatibility */
+  --color-primary: #1c1917;
+  --color-surface: #fafaf9;
+  --color-muted: #57534e;
+
+  /* Spacing */
+  --radius-card: 16px;
+  --radius-button: 12px;
+}
+
+html,
+body {
+  font-family: "DM Sans", system-ui, sans-serif;
+  color: var(--color-ink);
+  background-color: var(--color-paper);
+}
+
+/* Desktop: centered card layout */
+@media (min-width: 640px) {
+  body {
+    background-color: #e7e5e4;
+  }
+  body > div {
+    max-width: 480px;
+    margin-inline: auto;
+    background-color: var(--color-paper);
+    min-height: 100dvh;
+    box-shadow: 0 0 40px rgba(0, 0, 0, 0.06);
+  }
+  /* Larger body text on desktop */
+  body {
+    font-size: 18px;
+  }
+}
+
+/* Serif display font utility */
+.font-display {
+  font-family: "DM Serif Display", Georgia, serif;
+}
