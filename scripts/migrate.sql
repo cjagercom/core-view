@@ -37,3 +37,7 @@ CREATE INDEX IF NOT EXISTS idx_analytics_type_time ON analytics_events (event_ty
 
 -- Migration: add profile_text_versions column
 ALTER TABLE sessions ADD COLUMN IF NOT EXISTS profile_text_versions JSONB NOT NULL DEFAULT '[]'::jsonb;
+
+-- Migration: add share_token column for read-only profile sharing
+ALTER TABLE sessions ADD COLUMN IF NOT EXISTS share_token TEXT UNIQUE;
+CREATE INDEX IF NOT EXISTS idx_sessions_share_token ON sessions (share_token);

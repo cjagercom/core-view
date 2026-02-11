@@ -4,6 +4,7 @@ import { getDb } from '~/lib/db';
 import { getAnthropicModel, buildLLMContext, DEEP_DIVE_SYSTEM_PROMPT } from '~/lib/llm';
 import type { DimensionId } from '~/types/questions';
 import type { DimensionScore } from '~/types/profile';
+import { matchArchetype } from '~/engine/archetypes';
 import { trackEventServer } from '~/lib/analytics.server';
 
 interface ChatMessage {
@@ -93,7 +94,6 @@ export async function action({ request, params }: ActionFunctionArgs) {
           d.confidence += boost;
         }
 
-        const { matchArchetype } = await import('~/engine/archetypes');
         const newArchetype = matchArchetype(dims);
         const DIMENSIONS: DimensionId[] = ['energy', 'processing', 'uncertainty', 'social', 'response'];
         const newDistance = Math.sqrt(
@@ -251,7 +251,6 @@ export async function action({ request, params }: ActionFunctionArgs) {
         d.confidence += boost;
       }
 
-      const { matchArchetype } = await import('~/engine/archetypes');
       const newArchetype = matchArchetype(dims);
       const DIMENSIONS: DimensionId[] = ['energy', 'processing', 'uncertainty', 'social', 'response'];
       const newDistance = Math.sqrt(

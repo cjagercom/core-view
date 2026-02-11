@@ -444,7 +444,7 @@ export default function SessionPage() {
         <Footer />
       </div>
 
-      <ShareButton />
+      <ShareButton sessionId={token} />
     </div>
   );
 }

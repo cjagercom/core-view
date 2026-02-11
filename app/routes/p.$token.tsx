@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router';
 import { archetypes } from '~/data/archetypes';
 import { ArchetypeHeader } from '~/components/profile/ArchetypeHeader';
+import { DimensionCard } from '~/components/profile/DimensionCard';
 import { RadarChart } from '~/components/profile/RadarChart';
 import { Footer } from '~/components/ui/Footer';
 import { LogoLink } from '~/components/ui/LogoLink';
@@ -17,6 +18,7 @@ export default function SharedProfilePage() {
     archetypeId: string;
     archetypeName: string;
   } | null>(null);
+  const [profileText, setProfileText] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
 
@@ -25,15 +27,16 @@ export default function SharedProfilePage() {
 
     async function loadProfile() {
       try {
-        const res = await fetch(`/api/session?id=${token}`);
+        const res = await fetch(`/api/share/${token}`);
         if (!res.ok) {
           setError(true);
           setLoading(false);
           return;
         }
         const data = await res.json();
-        if (data.session?.profile) {
-          setProfile(data.session.profile);
+        if (data.profile) {
+          setProfile(data.profile);
+          if (data.profileText) setProfileText(data.profileText);
         } else {
           setError(true);
         }
@@ -93,6 +96,22 @@ export default function SharedProfilePage() {
         <ArchetypeHeader name={archetype.name} coreSentence={archetype.coreSentence} />
         <RadarChart scores={scores} />
 
+        {profileText && (
+          <div className="mt-8">
+            <ProfileText text={profileText} />
+          </div>
+        )}
+
+        <div className="mt-8 flex flex-col gap-3">
+          {scores.map((score) => (
+            <DimensionCard
+              key={score.dimensionId}
+              score={score}
+              description={archetype.dimensionTexts[score.dimensionId]}
+            />
+          ))}
+        </div>
+
         <div className="mt-8">
           <h3 className="font-display text-lg text-ink mb-3">Strengths</h3>
           <ul className="flex flex-col gap-2">
@@ -128,5 +147,31 @@ export default function SharedProfilePage() {
         </div>
       </div>
     </div>
+  );
+}
+
+function ProfileText({ text }: { text: string }) {
+  const html = text
+    .split(/\n{2,}/)
+    .map((p) => p.trim())
+    .filter(Boolean)
+    .map((p) => {
+      const formatted = p
+        .replace(/\*\*(.+?)\*\*/g, '<strong class="font-semibold text-ink">$1</strong>')
+        .replace(/(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)/g, '<em>$1</em>');
+      if (/^<strong[^>]*>.+<\/strong>$/.test(formatted.trim())) {
+        return `<h4 class="font-display text-base text-ink mt-6 mb-1">${formatted}</h4>`;
+      }
+      return `<p>${formatted}</p>`;
+    })
+    .join('');
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      className="text-sm text-ink-soft leading-relaxed space-y-3 [&_p]:mb-0 [&_h4]:mb-0"
+      dangerouslySetInnerHTML={{ __html: html }}
+    />
   );
 }

@@ -33,7 +33,7 @@ export function ChatInput({ onSend, disabled, placeholder = 'Type your answer...
 
   return (
     <div className="flex items-center gap-2">
-      <div className="relative flex-1">
+      <div className="relative flex-1 flex">
         <textarea
           ref={inputRef}
           value={value}
@@ -50,7 +50,7 @@ export function ChatInput({ onSend, disabled, placeholder = 'Type your answer...
           disabled={disabled}
           placeholder={placeholder}
           rows={1}
-          className="w-full resize-none rounded-2xl border-2 border-paper-dark bg-white px-4 py-3
+          className="w-full resize-none rounded-2xl border-2 border-paper-dark bg-white px-4 py-3 leading-5
                      text-sm sm:text-base text-ink placeholder:text-ink-muted
                      focus:outline-none focus:border-accent
                      disabled:opacity-50 disabled:cursor-not-allowed"

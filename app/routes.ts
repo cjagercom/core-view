@@ -31,6 +31,8 @@ export default [
   route('api/session/:id/reconciliation', 'routes/api.session.$id.reconciliation.ts'),
   route('api/session/:id/finalize', 'routes/api.session.$id.finalize.ts'),
   route('api/session/:id/delete', 'routes/api.session.$id.delete.ts'),
+  route('api/session/:id/share', 'routes/api.session.$id.share.ts'),
+  route('api/share/:token', 'routes/api.share.$token.ts'),
   route('api/feedback/:token', 'routes/api.feedback.$token.ts'),
   route('api/analytics', 'routes/api.analytics.ts'),
   route('api/admin', 'routes/api.admin.ts'),

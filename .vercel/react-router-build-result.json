@@ -34,6 +34,8 @@
       "routes/api.session.$id.reconciliation": "nodejs_eyJydW50aW1lIjoibm9kZWpzIn0",
       "routes/api.session.$id.finalize": "nodejs_eyJydW50aW1lIjoibm9kZWpzIn0",
       "routes/api.session.$id.delete": "nodejs_eyJydW50aW1lIjoibm9kZWpzIn0",
+      "routes/api.session.$id.share": "nodejs_eyJydW50aW1lIjoibm9kZWpzIn0",
+      "routes/api.share.$token": "nodejs_eyJydW50aW1lIjoibm9kZWpzIn0",
       "routes/api.feedback.$token": "nodejs_eyJydW50aW1lIjoibm9kZWpzIn0",
       "routes/api.analytics": "nodejs_eyJydW50aW1lIjoibm9kZWpzIn0",
       "routes/api.admin": "nodejs_eyJydW50aW1lIjoibm9kZWpzIn0"
@@ -267,6 +269,24 @@
           "runtime": "nodejs"
         }
       },
+      "routes/api.session.$id.share": {
+        "id": "routes/api.session.$id.share",
+        "parentId": "root",
+        "file": "app/routes/api.session.$id.share.ts",
+        "path": "api/session/:id/share",
+        "config": {
+          "runtime": "nodejs"
+        }
+      },
+      "routes/api.share.$token": {
+        "id": "routes/api.share.$token",
+        "parentId": "root",
+        "file": "app/routes/api.share.$token.ts",
+        "path": "api/share/:token",
+        "config": {
+          "runtime": "nodejs"
+        }
+      },
       "routes/api.feedback.$token": {
         "id": "routes/api.feedback.$token",
         "parentId": "root",
@@ -463,6 +483,18 @@
         "file": "routes/api.session.$id.delete.ts",
         "path": "api/session/:id/delete"
       },
+      "routes/api.session.$id.share": {
+        "id": "routes/api.session.$id.share",
+        "parentId": "root",
+        "file": "routes/api.session.$id.share.ts",
+        "path": "api/session/:id/share"
+      },
+      "routes/api.share.$token": {
+        "id": "routes/api.share.$token",
+        "parentId": "root",
+        "file": "routes/api.share.$token.ts",
+        "path": "api/share/:token"
+      },
       "routes/api.feedback.$token": {
         "id": "routes/api.feedback.$token",
         "parentId": "root",
@@ -596,6 +628,14 @@
           {
             "file": "routes/api.session.$id.delete.ts",
             "path": "api/session/:id/delete"
+          },
+          {
+            "file": "routes/api.session.$id.share.ts",
+            "path": "api/session/:id/share"
+          },
+          {
+            "file": "routes/api.share.$token.ts",
+            "path": "api/share/:token"
           },
           {
             "file": "routes/api.feedback.$token.ts",

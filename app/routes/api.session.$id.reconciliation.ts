@@ -6,6 +6,7 @@ import { aggregateFeedback } from '~/engine/feedback-scoring';
 import type { DimensionId } from '~/types/questions';
 import type { DimensionScore } from '~/types/profile';
 import type { FeedbackResponse } from '~/types/feedback';
+import { matchArchetype } from '~/engine/archetypes';
 import { trackEventServer } from '~/lib/analytics.server';
 
 interface ChatMessage {
@@ -99,7 +100,6 @@ export async function action({ request, params }: ActionFunctionArgs) {
           d.confidence += boost;
         }
 
-        const { matchArchetype } = await import('~/engine/archetypes');
         const newArchetype = matchArchetype(dims);
         const DIMENSIONS_CHECK: DimensionId[] = ['energy', 'processing', 'uncertainty', 'social', 'response'];
         const newDistance = Math.sqrt(
@@ -262,7 +262,6 @@ export async function action({ request, params }: ActionFunctionArgs) {
         d.confidence += boost;
       }
 
-      const { matchArchetype } = await import('~/engine/archetypes');
       const newArchetype = matchArchetype(dims);
       const newDistance = Math.sqrt(
         DIMENSIONS.reduce((sum, dim) => {

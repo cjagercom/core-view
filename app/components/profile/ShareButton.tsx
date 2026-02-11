@@ -1,5 +1,5 @@
-import { useState, useCallback } from 'react';
-import { Share2, Check, Copy, MoreHorizontal } from 'lucide-react';
+import { useState, useCallback, useEffect, useRef } from 'react';
+import { Share2, Check, Copy, MoreHorizontal, Loader2 } from 'lucide-react';
 import { Button } from '~/components/ui/Button';
 import { motion, AnimatePresence } from 'framer-motion';
 import { trackEvent } from '~/lib/analytics-client';
@@ -37,7 +37,9 @@ function copyToClipboard(text: string): Promise<void> {
 }
 
 interface ShareButtonProps {
-  /** URL to share. Defaults to current page URL. */
+  /** Session ID — when provided, generates a non-traceable share token for the URL. */
+  sessionId?: string;
+  /** URL to share. Defaults to share-token-based URL if sessionId provided, else current page URL. */
   url?: string;
   /** Title for the share. */
   title?: string;
@@ -45,24 +47,47 @@ interface ShareButtonProps {
   text?: string;
 }
 
-export function ShareButton({ url, title = 'My Core-View Profile', text }: ShareButtonProps) {
+export function ShareButton({ sessionId, url, title = 'My Core-View Profile', text }: ShareButtonProps) {
   const [open, setOpen] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [shareUrl, setShareUrl] = useState<string | null>(url ?? null);
+  const [loading, setLoading] = useState(false);
+  const fetched = useRef(false);
 
-  const getUrl = useCallback(() => url ?? window.location.href, [url]);
+  // When panel opens and we have a sessionId, fetch/create the share token
+  useEffect(() => {
+    if (!open || !sessionId || shareUrl || fetched.current) return;
+    fetched.current = true;
+    setLoading(true);
+    fetch(`/api/session/${sessionId}/share`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'create' }),
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.shareToken) {
+          setShareUrl(`${window.location.origin}/p/${data.shareToken}`);
+        }
+      })
+      .finally(() => setLoading(false));
+  }, [open, sessionId, shareUrl]);
+
+  const getUrl = useCallback(() => shareUrl ?? url ?? window.location.href, [shareUrl, url]);
   const shareText = text ?? `Check out my Core-View profile`;
+  const disabled = loading || (!shareUrl && !!sessionId);
 
   const handleWhatsApp = useCallback(() => {
-    const shareUrl = getUrl();
-    const waText = encodeURIComponent(`${shareText}\n${shareUrl}`);
+    const u = getUrl();
+    const waText = encodeURIComponent(`${shareText}\n${u}`);
     window.open(`https://wa.me/?text=${waText}`, '_blank', 'noopener');
     trackEvent('profile_shared', { method: 'whatsapp' });
     setOpen(false);
   }, [getUrl, shareText]);
 
   const handleLinkedIn = useCallback(() => {
-    const shareUrl = getUrl();
-    const linkedInText = `${shareText}\n${shareUrl}`;
+    const u = getUrl();
+    const linkedInText = `${shareText}\n${u}`;
     window.open(
       `https://www.linkedin.com/feed/?shareActive=true&text=${encodeURIComponent(linkedInText)}`,
       '_blank',
@@ -73,9 +98,9 @@ export function ShareButton({ url, title = 'My Core-View Profile', text }: Share
   }, [getUrl, shareText]);
 
   const handleCopy = useCallback(async () => {
-    const shareUrl = getUrl();
+    const u = getUrl();
     try {
-      await copyToClipboard(shareUrl);
+      await copyToClipboard(u);
       setCopied(true);
       trackEvent('profile_shared', { method: 'clipboard' });
       setTimeout(() => setCopied(false), 3000);
@@ -86,9 +111,9 @@ export function ShareButton({ url, title = 'My Core-View Profile', text }: Share
   }, [getUrl]);
 
   const handleNativeShare = useCallback(async () => {
-    const shareUrl = getUrl();
+    const u = getUrl();
     try {
-      await navigator.share({ title, text: shareText, url: shareUrl });
+      await navigator.share({ title, text: shareText, url: u });
       trackEvent('profile_shared', { method: 'native_share' });
     } catch {
       // User cancelled
@@ -137,46 +162,56 @@ export function ShareButton({ url, title = 'My Core-View Profile', text }: Share
 
                 <h3 className="font-display text-lg text-ink mb-4">Share via</h3>
 
-                <div className="grid grid-cols-3 gap-3">
-                  {/* WhatsApp */}
-                  <button
-                    onClick={handleWhatsApp}
-                    className="flex flex-col items-center gap-2 p-3 rounded-xl hover:bg-primary/5 transition-colors"
-                  >
-                    <div className="w-12 h-12 rounded-full bg-[#25D366]/10 flex items-center justify-center text-[#25D366]">
-                      <WhatsAppIcon />
-                    </div>
-                    <span className="text-xs text-ink-soft">WhatsApp</span>
-                  </button>
+                {loading ? (
+                  <div className="flex items-center justify-center py-8">
+                    <Loader2 size={24} className="animate-spin text-ink-muted" />
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-3 gap-3">
+                    {/* WhatsApp */}
+                    <button
+                      onClick={handleWhatsApp}
+                      disabled={disabled}
+                      className="flex flex-col items-center gap-2 p-3 rounded-xl hover:bg-primary/5 transition-colors disabled:opacity-40"
+                    >
+                      <div className="w-12 h-12 rounded-full bg-[#25D366]/10 flex items-center justify-center text-[#25D366]">
+                        <WhatsAppIcon />
+                      </div>
+                      <span className="text-xs text-ink-soft">WhatsApp</span>
+                    </button>
 
-                  {/* LinkedIn */}
-                  <button
-                    onClick={handleLinkedIn}
-                    className="flex flex-col items-center gap-2 p-3 rounded-xl hover:bg-primary/5 transition-colors"
-                  >
-                    <div className="w-12 h-12 rounded-full bg-[#0A66C2]/10 flex items-center justify-center text-[#0A66C2]">
-                      <LinkedInIcon />
-                    </div>
-                    <span className="text-xs text-ink-soft">LinkedIn</span>
-                  </button>
+                    {/* LinkedIn */}
+                    <button
+                      onClick={handleLinkedIn}
+                      disabled={disabled}
+                      className="flex flex-col items-center gap-2 p-3 rounded-xl hover:bg-primary/5 transition-colors disabled:opacity-40"
+                    >
+                      <div className="w-12 h-12 rounded-full bg-[#0A66C2]/10 flex items-center justify-center text-[#0A66C2]">
+                        <LinkedInIcon />
+                      </div>
+                      <span className="text-xs text-ink-soft">LinkedIn</span>
+                    </button>
 
-                  {/* Copy link */}
-                  <button
-                    onClick={handleCopy}
-                    className="flex flex-col items-center gap-2 p-3 rounded-xl hover:bg-primary/5 transition-colors"
-                  >
-                    <div className="w-12 h-12 rounded-full bg-primary/5 flex items-center justify-center text-ink-muted">
-                      {copied ? <Check size={20} className="text-emerald-500" /> : <Copy size={20} />}
-                    </div>
-                    <span className="text-xs text-ink-soft">{copied ? 'Copied!' : 'Copy link'}</span>
-                  </button>
-                </div>
+                    {/* Copy link */}
+                    <button
+                      onClick={handleCopy}
+                      disabled={disabled}
+                      className="flex flex-col items-center gap-2 p-3 rounded-xl hover:bg-primary/5 transition-colors disabled:opacity-40"
+                    >
+                      <div className="w-12 h-12 rounded-full bg-primary/5 flex items-center justify-center text-ink-muted">
+                        {copied ? <Check size={20} className="text-emerald-500" /> : <Copy size={20} />}
+                      </div>
+                      <span className="text-xs text-ink-soft">{copied ? 'Copied!' : 'Copy link'}</span>
+                    </button>
+                  </div>
+                )}
 
                 {/* Native share (more options) — only on supported devices */}
-                {hasNativeShare && (
+                {hasNativeShare && !loading && (
                   <button
                     onClick={handleNativeShare}
-                    className="mt-4 w-full flex items-center justify-center gap-2 py-3 rounded-xl border border-primary/10 text-sm text-ink-soft hover:bg-primary/5 transition-colors"
+                    disabled={disabled}
+                    className="mt-4 w-full flex items-center justify-center gap-2 py-3 rounded-xl border border-primary/10 text-sm text-ink-soft hover:bg-primary/5 transition-colors disabled:opacity-40"
                   >
                     <MoreHorizontal size={16} />
                     More options
