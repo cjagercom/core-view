@@ -96,23 +96,26 @@ export function FeedbackInvite({
           <div className="flex items-center gap-2 p-3 bg-surface rounded-lg">
             <input readOnly value={feedbackUrl} className="flex-1 text-xs text-muted bg-transparent outline-none" />
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <button
               onClick={async () => {
                 await navigator.clipboard.writeText(feedbackUrl);
                 setCopied(true);
                 setTimeout(() => setCopied(false), 2000);
               }}
-              className="flex-1 py-2.5 rounded-lg border border-ink/10 text-sm font-medium text-ink hover:bg-paper-dark/30 transition-colors"
+              className="flex-1 min-w-30 px-4 py-2.5 rounded-lg border border-ink/10 text-sm font-medium text-ink hover:bg-paper-dark/30 transition-colors"
             >
               {copied ? 'Copied!' : 'Copy link'}
             </button>
             {navigator.share && (
-              <Button onClick={handleShare} variant="secondary" className="flex-1">
+              <Button onClick={handleShare} variant="secondary" className="flex-1 min-w-30">
                 Share
               </Button>
             )}
-            <button onClick={handleToggle} className="text-xs text-muted hover:text-primary transition-colors px-3">
+            <button
+              onClick={handleToggle}
+              className="text-xs text-muted hover:text-primary transition-colors px-3 py-2.5"
+            >
               Disable link
             </button>
           </div>

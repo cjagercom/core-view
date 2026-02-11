@@ -21,6 +21,8 @@ export function TimedRanking({ prompt, items, timeLimitMs, onComplete }: TimedRa
   const [dragIndex, setDragIndex] = useState<number | null>(null);
   const [completed, setCompleted] = useState(false);
   const startTimeRef = useRef(Date.now());
+  const listRef = useRef<HTMLDivElement>(null);
+  const touchDragIndex = useRef<number | null>(null);
 
   const handleStart = useCallback(() => {
     startTimeRef.current = Date.now();
@@ -54,6 +56,41 @@ export function TimedRanking({ prompt, items, timeLimitMs, onComplete }: TimedRa
       next.splice(toIndex, 0, item);
       return next;
     });
+  }, []);
+
+  const getItemIndexAtY = useCallback((clientY: number): number | null => {
+    if (!listRef.current) return null;
+    const children = Array.from(listRef.current.children) as HTMLElement[];
+    for (let i = 0; i < children.length; i++) {
+      const rect = children[i].getBoundingClientRect();
+      if (clientY >= rect.top && clientY <= rect.bottom) return i;
+    }
+    return null;
+  }, []);
+
+  const handleTouchStart = useCallback((index: number) => {
+    touchDragIndex.current = index;
+    setDragIndex(index);
+  }, []);
+
+  const handleTouchMove = useCallback(
+    (e: React.TouchEvent) => {
+      if (touchDragIndex.current === null) return;
+      e.preventDefault();
+      const touch = e.touches[0];
+      const overIndex = getItemIndexAtY(touch.clientY);
+      if (overIndex !== null && overIndex !== touchDragIndex.current) {
+        moveItem(touchDragIndex.current, overIndex);
+        touchDragIndex.current = overIndex;
+        setDragIndex(overIndex);
+      }
+    },
+    [getItemIndexAtY, moveItem],
+  );
+
+  const handleTouchEnd = useCallback(() => {
+    touchDragIndex.current = null;
+    setDragIndex(null);
   }, []);
 
   if (phase === 'intro') {
@@ -98,13 +135,18 @@ export function TimedRanking({ prompt, items, timeLimitMs, onComplete }: TimedRa
     <div className="flex flex-col gap-5 items-center">
       <Timer durationMs={timeLimitMs} onComplete={handleTimerComplete} />
       <h2 className="text-lg font-medium text-primary text-center">{prompt}</h2>
-      <div className="w-full flex flex-col gap-2">
+      <div
+        ref={listRef}
+        className="w-full flex flex-col gap-2"
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+      >
         {ranked.map((item, index) => (
           <motion.div
             key={item.id}
             layout
             transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-            className={`flex items-center gap-3 p-4 rounded-lg border-2 bg-white select-none ${
+            className={`flex items-center gap-3 p-4 rounded-lg border-2 bg-white select-none touch-none ${
               dragIndex === index ? 'border-accent shadow-lg opacity-50' : 'border-primary/10'
             }`}
             draggable
@@ -130,6 +172,7 @@ export function TimedRanking({ prompt, items, timeLimitMs, onComplete }: TimedRa
               e.preventDefault();
               setDragIndex(null);
             }}
+            onTouchStart={() => handleTouchStart(index)}
           >
             <span className="w-7 h-7 flex items-center justify-center rounded-full bg-accent/10 text-accent font-bold text-sm shrink-0">
               {index + 1}

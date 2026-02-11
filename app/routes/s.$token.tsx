@@ -127,6 +127,18 @@ export default function SessionPage() {
     loadSession();
   }, [token]);
 
+  // Inject a dynamic PWA manifest so "Add to Home Screen" opens this profile
+  useEffect(() => {
+    if (!token) return;
+    const link = document.createElement('link');
+    link.rel = 'manifest';
+    link.href = `/api/manifest/${token}`;
+    document.head.appendChild(link);
+    return () => {
+      document.head.removeChild(link);
+    };
+  }, [token]);
+
   const handleFinalize = useCallback(async () => {
     if (!token) return;
     setShowFinalizeConfirm(false);

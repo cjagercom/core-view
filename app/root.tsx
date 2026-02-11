@@ -15,6 +15,7 @@ export const links: Route.LinksFunction = () => [
     href: 'https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=DM+Serif+Display&display=swap',
   },
   { rel: 'icon', type: 'image/svg+xml', href: '/favicon.svg' },
+  { rel: 'apple-touch-icon', href: '/icon-192.png' },
 ];
 
 export function Layout({ children }: { children: React.ReactNode }) {
@@ -23,6 +24,10 @@ export function Layout({ children }: { children: React.ReactNode }) {
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta name="theme-color" content="#115E59" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+        <meta name="apple-mobile-web-app-title" content="Core-View" />
 
         <meta property="og:title" content="Core-View — Discover who you are beneath everything you've learned" />
         <meta
@@ -30,6 +35,17 @@ export function Layout({ children }: { children: React.ReactNode }) {
           content="A 12-minute personality assessment that goes deeper than Myers-Briggs. No account needed."
         />
         <meta property="og:type" content="website" />
+        <meta property="og:url" content="https://www.core-view.app" />
+        <meta property="og:image" content="https://www.core-view.app/og-image.png" />
+        <meta property="og:image:width" content="1200" />
+        <meta property="og:image:height" content="630" />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content="Core-View — Discover who you are beneath everything you've learned" />
+        <meta
+          name="twitter:description"
+          content="A 12-minute personality assessment that goes deeper than Myers-Briggs. No account needed."
+        />
+        <meta name="twitter:image" content="https://www.core-view.app/og-image.png" />
         <title>Core-View</title>
         <Meta />
         <Links />
@@ -38,6 +54,11 @@ export function Layout({ children }: { children: React.ReactNode }) {
         {children}
         <ScrollRestoration />
         <Scripts />
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `if('serviceWorker' in navigator){navigator.serviceWorker.register('/sw.js').catch(function(){})}`,
+          }}
+        />
       </body>
     </html>
   );
