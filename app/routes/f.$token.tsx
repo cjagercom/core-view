@@ -1,6 +1,12 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router';
+import type { MetaFunction } from 'react-router';
 import { FeedbackForm } from '~/components/feedback/FeedbackForm';
+
+export const meta: MetaFunction = () => [
+  { title: 'Feedback \u2014 Core-View' },
+  { name: 'robots', content: 'noindex, nofollow' },
+];
 import { FeedbackComplete } from '~/components/feedback/FeedbackComplete';
 import { Button } from '~/components/ui/Button';
 import type { FeedbackQuestion, FeedbackResponse } from '~/types/feedback';

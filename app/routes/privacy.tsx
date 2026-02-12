@@ -1,6 +1,16 @@
+import type { MetaFunction } from 'react-router';
 import { Footer } from '~/components/ui/Footer';
 import { LogoLink } from '~/components/ui/LogoLink';
 import { ExternalLink } from 'lucide-react';
+
+export const meta: MetaFunction = () => [
+  { title: 'Privacy \u2014 Core-View' },
+  {
+    name: 'description',
+    content:
+      'Core-View is designed to know as little about you as possible. No account, no email, no cookies, no tracking.',
+  },
+];
 
 export default function PrivacyPage() {
   return (

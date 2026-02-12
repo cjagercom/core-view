@@ -1,6 +1,16 @@
 import { useState, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router';
+import type { MetaFunction } from 'react-router';
 import { Footer } from '~/components/ui/Footer';
+
+export const meta: MetaFunction = () => [
+  { title: 'About Core-View \u2014 Methodology & five dimensions' },
+  {
+    name: 'description',
+    content:
+      'How Core-View works: childhood scenarios, timed rankings, and reflective writing mapped across five personality dimensions. Learn about the methodology.',
+  },
+];
 import { LogoLink } from '~/components/ui/LogoLink';
 import { Button } from '~/components/ui/Button';
 import { ExternalLink, ArrowRight } from 'lucide-react';

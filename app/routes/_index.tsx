@@ -1,6 +1,16 @@
 import { useState, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router';
+import type { MetaFunction } from 'react-router';
 import { Clock, ShieldOff, Link as LinkIcon, ArrowRight } from 'lucide-react';
+
+export const meta: MetaFunction = () => [
+  { title: "Core-View \u2014 Discover who you are beneath everything you've learned" },
+  {
+    name: 'description',
+    content:
+      "A 12-minute personality assessment that goes deeper than Myers-Briggs. Based on who you were as a child, not who you've become. No account needed.",
+  },
+];
 import { Button } from '~/components/ui/Button';
 import { Footer } from '~/components/ui/Footer';
 import { HomeSharePanel } from '~/components/ui/HomeSharePanel';

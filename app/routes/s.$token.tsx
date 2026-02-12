@@ -1,5 +1,11 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router';
+import type { MetaFunction } from 'react-router';
+
+export const meta: MetaFunction = () => [
+  { title: 'Your Profile \u2014 Core-View' },
+  { name: 'robots', content: 'noindex, nofollow' },
+];
 import { archetypes } from '~/data/archetypes';
 import { ArchetypeHeader } from '~/components/profile/ArchetypeHeader';
 import { RadarChart } from '~/components/profile/RadarChart';

@@ -1,9 +1,12 @@
 import { useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router';
+import type { MetaFunction } from 'react-router';
 import { DeepDiveChat, type LLMCompletion } from '~/components/deep-dive/DeepDiveChat';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, CheckCircle } from 'lucide-react';
 import { Button } from '~/components/ui/Button';
+
+export const meta: MetaFunction = () => [{ name: 'robots', content: 'noindex, nofollow' }];
 
 export default function DeepDivePage() {
   const { token } = useParams();

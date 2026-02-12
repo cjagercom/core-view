@@ -1,0 +1,14 @@
+User-agent: *
+Allow: /
+Allow: /about
+Allow: /privacy
+
+Disallow: /session/
+Disallow: /s/
+Disallow: /p/
+Disallow: /f/
+Disallow: /profile/
+Disallow: /admin
+Disallow: /api/
+
+Sitemap: https://www.core-view.app/sitemap.xml

@@ -1,5 +1,7 @@
-import type { LoaderFunctionArgs } from 'react-router';
+import type { LoaderFunctionArgs, MetaFunction } from 'react-router';
 import { useLoaderData, useSearchParams, useNavigation } from 'react-router';
+
+export const meta: MetaFunction = () => [{ name: 'robots', content: 'noindex, nofollow' }];
 import { validateBasicAuth, unauthorizedResponse } from '~/lib/auth.server';
 import { fetchAdminData } from '~/lib/admin-queries.server';
 import { DashboardLayout } from '~/components/admin/DashboardLayout';

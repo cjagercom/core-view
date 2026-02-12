@@ -1,6 +1,12 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router';
+import type { MetaFunction } from 'react-router';
 import { archetypes } from '~/data/archetypes';
+
+export const meta: MetaFunction = () => [
+  { title: 'Shared Profile \u2014 Core-View' },
+  { name: 'robots', content: 'noindex, nofollow' },
+];
 import { ArchetypeHeader } from '~/components/profile/ArchetypeHeader';
 import { DimensionCard } from '~/components/profile/DimensionCard';
 import { RadarChart } from '~/components/profile/RadarChart';

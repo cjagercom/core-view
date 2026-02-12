@@ -1,6 +1,9 @@
 import { useEffect } from 'react';
 import { Outlet } from 'react-router';
+import type { MetaFunction } from 'react-router';
 import { SessionProvider, useSession, usePersist } from '~/lib/session-store';
+
+export const meta: MetaFunction = () => [{ name: 'robots', content: 'noindex, nofollow' }];
 import { ProgressBar } from '~/components/wizard/ProgressBar';
 
 function SessionLayout() {

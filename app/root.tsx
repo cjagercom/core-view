@@ -3,6 +3,15 @@ import { isRouteErrorResponse, Links, Meta, Outlet, Scripts, ScrollRestoration }
 import type { Route } from './+types/root';
 import './app.css';
 
+export const meta: Route.MetaFunction = () => [
+  { title: "Core-View \u2014 Discover who you are beneath everything you've learned" },
+  {
+    name: 'description',
+    content:
+      "A 12-minute personality assessment that goes deeper than Myers-Briggs. Based on who you were as a child, not who you've become. No account needed.",
+  },
+];
+
 export const links: Route.LinksFunction = () => [
   { rel: 'preconnect', href: 'https://fonts.googleapis.com' },
   {
@@ -16,6 +25,7 @@ export const links: Route.LinksFunction = () => [
   },
   { rel: 'icon', type: 'image/svg+xml', href: '/favicon.svg' },
   { rel: 'apple-touch-icon', href: '/icon-192.png' },
+  { rel: 'canonical', href: 'https://www.core-view.app' },
 ];
 
 export function Layout({ children }: { children: React.ReactNode }) {
@@ -46,7 +56,23 @@ export function Layout({ children }: { children: React.ReactNode }) {
           content="A 12-minute personality assessment that goes deeper than Myers-Briggs. No account needed."
         />
         <meta name="twitter:image" content="https://www.core-view.app/og-image.png" />
-        <title>Core-View</title>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              '@context': 'https://schema.org',
+              '@type': 'WebApplication',
+              name: 'Core-View',
+              url: 'https://www.core-view.app',
+              description:
+                "A 12-minute personality assessment that goes deeper than Myers-Briggs. Based on who you were as a child, not who you've become.",
+              applicationCategory: 'LifestyleApplication',
+              operatingSystem: 'Any',
+              offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
+              creator: { '@type': 'Organization', name: 'PinkPollos', url: 'https://www.pinkpollos.com' },
+            }),
+          }}
+        />
         <Meta />
         <Links />
       </head>
