@@ -22,6 +22,10 @@ export function Footer() {
         <Link to="/about" className="hover:text-ink-soft transition-colors">
           About
         </Link>
+        <span>&middot;</span>
+        <Link to="/personality" className="hover:text-ink-soft transition-colors">
+          Archetypes
+        </Link>
       </p>
     </footer>
   );

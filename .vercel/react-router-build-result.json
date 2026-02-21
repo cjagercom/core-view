@@ -25,6 +25,9 @@
       "routes/p.$token": "nodejs_eyJydW50aW1lIjoibm9kZWpzIn0",
       "routes/f.$token": "nodejs_eyJydW50aW1lIjoibm9kZWpzIn0",
       "routes/admin": "nodejs_eyJydW50aW1lIjoibm9kZWpzIn0",
+      "routes/personality._index": "nodejs_eyJydW50aW1lIjoibm9kZWpzIn0",
+      "routes/personality.$slug": "nodejs_eyJydW50aW1lIjoibm9kZWpzIn0",
+      "routes/sitemap[.]xml": "nodejs_eyJydW50aW1lIjoibm9kZWpzIn0",
       "routes/api.session": "nodejs_eyJydW50aW1lIjoibm9kZWpzIn0",
       "routes/api.session.$id.step": "nodejs_eyJydW50aW1lIjoibm9kZWpzIn0",
       "routes/api.session.$id.profile": "nodejs_eyJydW50aW1lIjoibm9kZWpzIn0",
@@ -184,6 +187,40 @@
         "parentId": "root",
         "file": "app/routes/admin.tsx",
         "path": "admin",
+        "config": {
+          "runtime": "nodejs"
+        }
+      },
+      "routes/personality": {
+        "id": "routes/personality",
+        "parentId": "root",
+        "file": "app/routes/personality.tsx",
+        "path": "personality",
+        "config": {}
+      },
+      "routes/personality._index": {
+        "id": "routes/personality._index",
+        "parentId": "routes/personality",
+        "file": "app/routes/personality._index.tsx",
+        "index": true,
+        "config": {
+          "runtime": "nodejs"
+        }
+      },
+      "routes/personality.$slug": {
+        "id": "routes/personality.$slug",
+        "parentId": "routes/personality",
+        "file": "app/routes/personality.$slug.tsx",
+        "path": ":slug",
+        "config": {
+          "runtime": "nodejs"
+        }
+      },
+      "routes/sitemap[.]xml": {
+        "id": "routes/sitemap[.]xml",
+        "parentId": "root",
+        "file": "app/routes/sitemap[.]xml.ts",
+        "path": "sitemap.xml",
         "config": {
           "runtime": "nodejs"
         }
@@ -429,6 +466,30 @@
         "file": "routes/admin.tsx",
         "path": "admin"
       },
+      "routes/personality": {
+        "id": "routes/personality",
+        "parentId": "root",
+        "file": "routes/personality.tsx",
+        "path": "personality"
+      },
+      "routes/personality._index": {
+        "id": "routes/personality._index",
+        "parentId": "routes/personality",
+        "file": "routes/personality._index.tsx",
+        "index": true
+      },
+      "routes/personality.$slug": {
+        "id": "routes/personality.$slug",
+        "parentId": "routes/personality",
+        "file": "routes/personality.$slug.tsx",
+        "path": ":slug"
+      },
+      "routes/sitemap[.]xml": {
+        "id": "routes/sitemap[.]xml",
+        "parentId": "root",
+        "file": "routes/sitemap[.]xml.ts",
+        "path": "sitemap.xml"
+      },
       "routes/api.session": {
         "id": "routes/api.session",
         "parentId": "root",
@@ -592,6 +653,24 @@
           {
             "file": "routes/admin.tsx",
             "path": "admin"
+          },
+          {
+            "file": "routes/personality.tsx",
+            "children": [
+              {
+                "file": "routes/personality._index.tsx",
+                "index": true
+              },
+              {
+                "file": "routes/personality.$slug.tsx",
+                "path": ":slug"
+              }
+            ],
+            "path": "personality"
+          },
+          {
+            "file": "routes/sitemap[.]xml.ts",
+            "path": "sitemap.xml"
           },
           {
             "file": "routes/api.session.ts",

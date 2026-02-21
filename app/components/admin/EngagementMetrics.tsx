@@ -22,6 +22,7 @@ const METRICS: Metric[] = [
   { label: 'Profile share rate', eventType: 'profile_shared', thresholds: { green: 20, yellow: 10 } },
   { label: 'Follow-up start rate', eventType: 'followup_started', thresholds: { green: 15, yellow: 5 } },
   { label: 'Feedback creation rate', eventType: 'feedback_link_created', thresholds: { green: 10, yellow: 3 } },
+  { label: 'Deep-dive unlock clicks', eventType: 'deep_dive_unlock_clicked', thresholds: { green: 30, yellow: 15 } },
 ];
 
 function getHealth(rate: number, thresholds: { green: number; yellow: number }): Health {

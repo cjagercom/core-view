@@ -76,8 +76,9 @@ export default function AdminDashboard() {
     );
   }
 
-  const completionRate =
-    data.sessions.started > 0 ? Math.round((data.sessions.completed / data.sessions.started) * 100) : 0;
+  const maxFunnelStep = data.funnel.reduce((max, d) => Math.max(max, d.completions), 0);
+  const effectiveStarted = Math.max(data.sessions.started, maxFunnelStep);
+  const completionRate = effectiveStarted > 0 ? Math.round((data.sessions.completed / effectiveStarted) * 100) : 0;
 
   return (
     <DashboardLayout period={period} onPeriodChange={handlePeriodChange}>

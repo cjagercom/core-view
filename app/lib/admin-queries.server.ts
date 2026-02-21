@@ -52,7 +52,7 @@ export async function fetchAdminData(days: number) {
     sql`
       SELECT event_type, COUNT(*)::int as count
       FROM analytics_events
-      WHERE event_type IN ('link_saved', 'profile_shared', 'followup_started', 'feedback_link_created', 'feedback_submitted', 'return_visit')
+      WHERE event_type IN ('link_saved', 'profile_shared', 'followup_started', 'feedback_link_created', 'feedback_submitted', 'return_visit', 'deep_dive_unlock_clicked')
         AND occurred_at > NOW() - MAKE_INTERVAL(days => ${days})
       GROUP BY event_type
     `,
@@ -69,13 +69,19 @@ export async function fetchAdminData(days: number) {
         AND occurred_at > NOW() - MAKE_INTERVAL(days => ${days})
       GROUP BY event_data->>'callType'
     `,
-    // Total session counts: unique sessions
+    // Total session counts: find sessions active in the period, then count
+    // started/completed regardless of when those events occurred (avoids >100%)
     sql`
       SELECT
         COUNT(DISTINCT CASE WHEN event_type = 'session_started' THEN event_data->>'sessionId' END)::int as started,
         COUNT(DISTINCT CASE WHEN event_type = 'session_completed' THEN event_data->>'sessionId' END)::int as completed
       FROM analytics_events
-      WHERE occurred_at > NOW() - MAKE_INTERVAL(days => ${days})
+      WHERE event_type IN ('session_started', 'session_completed')
+        AND event_data->>'sessionId' IN (
+          SELECT DISTINCT event_data->>'sessionId'
+          FROM analytics_events
+          WHERE occurred_at > NOW() - MAKE_INTERVAL(days => ${days})
+        )
     `,
   ]);
 

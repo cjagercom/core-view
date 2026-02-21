@@ -22,7 +22,8 @@ import { Link } from 'react-router';
 import type { DimensionScore } from '~/types/profile';
 import type { DimensionId } from '~/types/questions';
 import type { FeedbackResponse } from '~/types/feedback';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
+import { trackEvent } from '~/lib/analytics-client';
 
 interface SessionData {
   id: string;
@@ -81,6 +82,7 @@ export default function SessionPage() {
   const [showFinalizeConfirm, setShowFinalizeConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [deleted, setDeleted] = useState(false);
+  const [showUnlockModal, setShowUnlockModal] = useState(false);
 
   useEffect(() => {
     if (!token) return;
@@ -352,6 +354,23 @@ export default function SessionPage() {
 
         <RadarChart scores={scores} previousScores={previousScores} feedbackScores={feedbackScores ?? undefined} />
 
+        {/* Journey section — prominent, right after radar chart */}
+        {!isFinalized && (
+          <JourneySection
+            token={token!}
+            hasDeepDive={hasDeepDive}
+            hasFeedback={hasFeedback}
+            hasReconciliation={hasReconciliation}
+            feedbackResponses={feedbackResponses}
+            session={session}
+            navigate={navigate}
+            showFinalizeConfirm={showFinalizeConfirm}
+            setShowFinalizeConfirm={setShowFinalizeConfirm}
+            handleFinalize={handleFinalize}
+            setShowUnlockModal={setShowUnlockModal}
+          />
+        )}
+
         <div className="mt-8">
           {/* Show final profile text if finalized, otherwise streaming profile text */}
           {isFinalized && profileTextContent ? (
@@ -381,47 +400,35 @@ export default function SessionPage() {
 
         <div className="mt-8">
           <h3 className="font-display text-lg text-ink mb-3">Strengths</h3>
-          <ul className="flex flex-col gap-2">
+          <div className="flex flex-col gap-2.5">
             {archetype.strengths.map((s) => (
-              <li key={s} className="flex items-start gap-2 text-sm text-ink-soft">
-                <Sparkles size={16} className="text-accent mt-0.5 shrink-0" />
-                <span>{s}</span>
-              </li>
+              <div key={s} className="flex items-start gap-3 p-3.5 rounded-xl bg-accent-glow border border-accent/10">
+                <div className="w-8 h-8 rounded-full bg-accent/10 flex items-center justify-center shrink-0">
+                  <Sparkles size={16} className="text-accent" />
+                </div>
+                <span className="text-sm text-ink-soft pt-1">{s}</span>
+              </div>
             ))}
-          </ul>
+          </div>
         </div>
 
         <div className="mt-6">
           <h3 className="font-display text-lg text-ink mb-3">Watch-outs</h3>
-          <ul className="flex flex-col gap-2">
+          <div className="flex flex-col gap-2.5">
             {archetype.watchOuts.map((w) => (
-              <li key={w} className="flex items-start gap-2 text-sm text-ink-soft">
-                <AlertTriangle size={16} className="text-warm mt-0.5 shrink-0" />
-                <span>{w}</span>
-              </li>
+              <div key={w} className="flex items-start gap-3 p-3.5 rounded-xl bg-warm-light/50 border border-warm/10">
+                <div className="w-8 h-8 rounded-full bg-warm/10 flex items-center justify-center shrink-0">
+                  <AlertTriangle size={16} className="text-warm" />
+                </div>
+                <span className="text-sm text-ink-soft pt-1">{w}</span>
+              </div>
             ))}
-          </ul>
+          </div>
         </div>
 
         <div className="mt-10">
           <SaveLinkPrompt sessionUrl={sessionUrl} />
         </div>
-
-        {/* Journey section — only when not finalized */}
-        {!isFinalized && (
-          <JourneySection
-            token={token!}
-            hasDeepDive={hasDeepDive}
-            hasFeedback={hasFeedback}
-            hasReconciliation={hasReconciliation}
-            feedbackResponses={feedbackResponses}
-            session={session}
-            navigate={navigate}
-            showFinalizeConfirm={showFinalizeConfirm}
-            setShowFinalizeConfirm={setShowFinalizeConfirm}
-            handleFinalize={handleFinalize}
-          />
-        )}
 
         {/* Delete section — always visible */}
         <div className="mt-12 mb-8 pt-8 border-t border-primary/5">
@@ -463,6 +470,55 @@ export default function SessionPage() {
       </div>
 
       <ShareButton sessionId={token} />
+
+      {/* Deep-dive unlock modal */}
+      <AnimatePresence>
+        {showUnlockModal && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/40 z-50"
+              onClick={() => setShowUnlockModal(false)}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+              className="fixed inset-x-4 top-1/2 -translate-y-1/2 max-w-100 mx-auto z-50 bg-paper rounded-2xl p-6 shadow-xl border border-paper-dark"
+            >
+              <div className="text-center">
+                <div className="w-14 h-14 rounded-full bg-accent/10 flex items-center justify-center mx-auto mb-4">
+                  <Sparkles size={28} className="text-accent" />
+                </div>
+                <h2 className="font-display text-xl text-ink mb-2">Unlock Full Profile</h2>
+                <p className="text-sm text-ink-soft mb-6 leading-relaxed">
+                  A 10-minute conversation with an AI coach that explores the nuances behind your scores and refines
+                  your profile.
+                </p>
+                <Button
+                  onClick={() => {
+                    trackEvent('deep_dive_unlock_clicked', { sessionId: token });
+                    setShowUnlockModal(false);
+                    navigate(`/s/${token}/deep-dive`);
+                  }}
+                >
+                  Unlock deep-dive
+                </Button>
+                <button
+                  type="button"
+                  onClick={() => setShowUnlockModal(false)}
+                  className="mt-3 w-full py-2 text-sm text-ink-muted hover:text-ink transition-colors"
+                >
+                  Maybe later
+                </button>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
@@ -479,6 +535,7 @@ function JourneySection({
   showFinalizeConfirm,
   setShowFinalizeConfirm,
   handleFinalize,
+  setShowUnlockModal,
 }: {
   token: string;
   hasDeepDive: boolean;
@@ -490,6 +547,7 @@ function JourneySection({
   showFinalizeConfirm: boolean;
   setShowFinalizeConfirm: (v: boolean) => void;
   handleFinalize: () => void;
+  setShowUnlockModal: (v: boolean) => void;
 }) {
   // Determine which step is the recommended next action
   const hasFeedbackLink = !!session.feedback_token;
@@ -498,8 +556,6 @@ function JourneySection({
 
   type StepState = 'done' | 'active' | 'upcoming' | 'optional';
 
-  const deepDiveState: StepState = hasDeepDive ? 'done' : 'active';
-  const feedbackState: StepState = hasFeedback ? 'done' : hasDeepDive ? 'active' : 'optional';
   const reconciliationState: StepState = hasReconciliation
     ? 'done'
     : hasFeedback
@@ -519,33 +575,80 @@ function JourneySection({
 
       <div className="flex flex-col gap-3">
         {/* Step 1: Deep-dive */}
-        <JourneyStep
-          number={1}
-          title="Deep-dive conversation"
-          description={
-            hasDeepDive
-              ? 'Scores refined based on conversation'
-              : 'Refine your scores in a conversation with an AI coach'
-          }
-          state={deepDiveState}
-          action={!hasDeepDive ? () => navigate(`/s/${token}/deep-dive`) : undefined}
-          actionLabel="Start deep-dive"
-        />
+        {hasDeepDive ? (
+          <JourneyStep
+            number={1}
+            title="Deep-dive conversation"
+            description="Scores refined based on conversation"
+            state="done"
+          />
+        ) : (
+          <button
+            type="button"
+            onClick={() => setShowUnlockModal(true)}
+            className="relative rounded-2xl overflow-hidden p-5 text-left group cursor-pointer"
+            style={{
+              background:
+                'linear-gradient(135deg, var(--color-accent-glow) 0%, #fff 50%, var(--color-paper-warm) 100%)',
+            }}
+          >
+            <div className="absolute inset-0 rounded-2xl border-2 border-accent/20 group-hover:border-accent/40 transition-colors" />
+            <div className="relative z-10">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="w-10 h-10 rounded-full bg-accent/10 flex items-center justify-center">
+                  <Sparkles size={20} className="text-accent" />
+                </div>
+                <div>
+                  <p className="font-display text-base text-ink">Deep-dive conversation</p>
+                  <p className="text-xs text-ink-muted">10 minutes with an AI coach</p>
+                </div>
+              </div>
+              <p className="text-sm text-ink-soft mt-2">
+                Refine your scores in a conversation that explores the patterns behind your answers.
+              </p>
+              <div className="mt-4 inline-flex items-center gap-2 text-sm font-bold text-accent group-hover:gap-3 transition-all">
+                Start deep-dive <ArrowRight size={16} />
+              </div>
+            </div>
+          </button>
+        )}
 
         {/* Step 2: Collect feedback */}
-        <JourneyStep
-          number={2}
-          title="Collect feedback from others"
-          description={
-            hasFeedback
-              ? `${feedbackResponses.length} responses received`
-              : hasFeedbackLink
-                ? 'Share your feedback link — need 3+ responses'
-                : 'Share a short questionnaire with people who know you'
-          }
-          state={feedbackState}
-          optional
-        />
+        {hasFeedback ? (
+          <JourneyStep
+            number={2}
+            title="Collect feedback from others"
+            description={`${feedbackResponses.length} responses received`}
+            state="done"
+            optional
+          />
+        ) : hasDeepDive ? (
+          <div className="rounded-xl border-2 border-dashed border-accent/20 bg-accent-glow/50 p-4">
+            <div className="flex items-start gap-3">
+              <div className="w-7 h-7 rounded-full bg-accent/10 text-accent flex items-center justify-center text-xs font-medium border border-accent/30 shrink-0">
+                2
+              </div>
+              <div>
+                <p className="text-sm font-medium text-ink">
+                  Collect feedback from others <span className="text-xs font-normal text-ink-muted">(optional)</span>
+                </p>
+                <p className="text-xs text-ink-muted mt-0.5">
+                  {hasFeedbackLink
+                    ? 'Share your feedback link — need 3+ responses'
+                    : 'Share a short questionnaire with people who know you'}
+                </p>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <JourneyStep
+            number={2}
+            title="Collect feedback from others"
+            description="Share a short questionnaire with people who know you"
+            state="optional"
+            optional
+          />
+        )}
 
         {/* Show feedback invite inline when it's the right time */}
         {!hasFeedback && (

@@ -21,6 +21,15 @@ export default [
   route('f/:token', 'routes/f.$token.tsx'),
   route('admin', 'routes/admin.tsx'),
 
+  // SEO: public archetype pages
+  route('personality', 'routes/personality.tsx', [
+    index('routes/personality._index.tsx'),
+    route(':slug', 'routes/personality.$slug.tsx'),
+  ]),
+
+  // SEO: dynamic sitemap
+  route('sitemap.xml', 'routes/sitemap[.]xml.ts'),
+
   // Phase 2: API routes
   route('api/session', 'routes/api.session.ts'),
   route('api/session/:id/step', 'routes/api.session.$id.step.ts'),
@@ -34,6 +43,7 @@ export default [
   route('api/session/:id/share', 'routes/api.session.$id.share.ts'),
   route('api/share/:token', 'routes/api.share.$token.ts'),
   route('api/feedback/:token', 'routes/api.feedback.$token.ts'),
+  route('api/manifest/:token', 'routes/api.manifest.$token.ts'),
   route('api/analytics', 'routes/api.analytics.ts'),
   route('api/admin', 'routes/api.admin.ts'),
 ] satisfies RouteConfig;

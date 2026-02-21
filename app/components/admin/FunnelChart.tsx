@@ -22,7 +22,11 @@ const STEP_ORDER = ['warmup', 'scenarios', 'ranking', 'writing', 'processing'];
 
 export function FunnelChart({ data, totalStarted }: FunnelChartProps) {
   const stepMap = Object.fromEntries(data.map((d) => [d.step, d.completions]));
-  const completionRate = totalStarted > 0 ? Math.round(((stepMap.processing || 0) / totalStarted) * 100) : 0;
+  // Use the max of totalStarted and highest step count as denominator
+  // to handle sessions with step_completed but no session_started event
+  const maxStepCount = data.reduce((max, d) => Math.max(max, d.completions), 0);
+  const effectiveStarted = Math.max(totalStarted, maxStepCount);
+  const completionRate = effectiveStarted > 0 ? Math.round(((stepMap.processing || 0) / effectiveStarted) * 100) : 0;
 
   return (
     <div className="bg-white rounded-xl p-5 border border-gray-100">
@@ -37,7 +41,7 @@ export function FunnelChart({ data, totalStarted }: FunnelChartProps) {
           <div className="flex-1 bg-gray-100 rounded-full h-6 relative">
             <div className="bg-blue-500 h-6 rounded-full" style={{ width: '100%' }} />
             <span className="absolute inset-0 flex items-center justify-center text-xs text-white font-medium">
-              {totalStarted}
+              {effectiveStarted}
             </span>
           </div>
           <span className="text-sm w-12 text-right text-gray-500">100%</span>
@@ -45,7 +49,7 @@ export function FunnelChart({ data, totalStarted }: FunnelChartProps) {
 
         {STEP_ORDER.map((step) => {
           const count = stepMap[step] || 0;
-          const pct = totalStarted > 0 ? Math.round((count / totalStarted) * 100) : 0;
+          const pct = effectiveStarted > 0 ? Math.round((count / effectiveStarted) * 100) : 0;
           return (
             <div key={step} className="flex items-center gap-3">
               <span className="text-sm w-24 text-gray-500">{STEP_LABELS[step] || step}</span>

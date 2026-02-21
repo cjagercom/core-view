@@ -2,15 +2,20 @@ import type { MetaFunction } from 'react-router';
 import { Footer } from '~/components/ui/Footer';
 import { LogoLink } from '~/components/ui/LogoLink';
 import { ExternalLink } from 'lucide-react';
+import { buildMeta } from '~/lib/seo';
 
-export const meta: MetaFunction = () => [
-  { title: 'Privacy \u2014 Core-View' },
-  {
-    name: 'description',
-    content:
-      'Core-View is designed to know as little about you as possible. No account, no email, no cookies, no tracking.',
-  },
-];
+export const meta: MetaFunction = ({ matches }) => {
+  const parentMeta = matches.flatMap((match) => match.meta ?? []);
+  return buildMeta(
+    {
+      title: 'Privacy \u2014 Core-View',
+      description:
+        'Core-View is designed to know as little about you as possible. No account, no email, no cookies, no tracking.',
+      url: '/privacy',
+    },
+    parentMeta,
+  );
+};
 
 export default function PrivacyPage() {
   return (

@@ -2,15 +2,20 @@ import { useState, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router';
 import type { MetaFunction } from 'react-router';
 import { Footer } from '~/components/ui/Footer';
+import { buildMeta } from '~/lib/seo';
 
-export const meta: MetaFunction = () => [
-  { title: 'About Core-View \u2014 Methodology & five dimensions' },
-  {
-    name: 'description',
-    content:
-      'How Core-View works: childhood scenarios, timed rankings, and reflective writing mapped across five personality dimensions. Learn about the methodology.',
-  },
-];
+export const meta: MetaFunction = ({ matches }) => {
+  const parentMeta = matches.flatMap((match) => match.meta ?? []);
+  return buildMeta(
+    {
+      title: 'About Core-View \u2014 Methodology & five dimensions',
+      description:
+        'How Core-View works: childhood scenarios, timed rankings, and reflective writing mapped across five personality dimensions. Learn about the methodology.',
+      url: '/about',
+    },
+    parentMeta,
+  );
+};
 import { LogoLink } from '~/components/ui/LogoLink';
 import { Button } from '~/components/ui/Button';
 import { ExternalLink, ArrowRight } from 'lucide-react';
@@ -90,6 +95,69 @@ export default function AboutPage() {
     <div className="min-h-dvh bg-paper">
       <div className="w-full max-w-[480px] mx-auto px-5 pb-12">
         <LogoLink />
+
+        <h1 className="font-display text-3xl text-ink mb-1">About Core-View</h1>
+        <p className="text-ink-soft mb-4">Methodology & five dimensions</p>
+
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              '@context': 'https://schema.org',
+              '@type': 'FAQPage',
+              mainEntity: [
+                {
+                  '@type': 'Question',
+                  name: 'What is Core-View?',
+                  acceptedAnswer: {
+                    '@type': 'Answer',
+                    text: "Core-View is a 12-minute personality assessment that asks who you were as a child, not who you've become. It uses situational scenarios, timed rankings, and reflective writing to reveal your core personality traits across five dimensions.",
+                  },
+                },
+                {
+                  '@type': 'Question',
+                  name: 'What are the five personality dimensions?',
+                  acceptedAnswer: {
+                    '@type': 'Answer',
+                    text: 'The five dimensions are: Energy Orientation (Internal vs External), Information Processing (Deep vs Broad), Uncertainty Tolerance (Structure vs Exploration), Social Orientation (Autonomous vs Connecting), and Response Pattern (Reflective vs Reactive).',
+                  },
+                },
+                {
+                  '@type': 'Question',
+                  name: 'How does a Core-View session work?',
+                  acceptedAnswer: {
+                    '@type': 'Answer',
+                    text: 'The session has four parts: warm-up questions, childhood scenarios (ages 7-12), timed rankings under time pressure, and a reflective writing exercise. Each part reveals different aspects of your personality.',
+                  },
+                },
+                {
+                  '@type': 'Question',
+                  name: 'Why does Core-View focus on childhood?',
+                  acceptedAnswer: {
+                    '@type': 'Answer',
+                    text: 'Research in developmental psychology shows that core personality traits — temperament, social orientation, risk tolerance — are largely stable from early childhood. By asking about childhood, Core-View bypasses professional conditioning to find the patterns that were always there.',
+                  },
+                },
+                {
+                  '@type': 'Question',
+                  name: 'How does Core-View scoring work?',
+                  acceptedAnswer: {
+                    '@type': 'Answer',
+                    text: 'Answers are scored across five spectrums using a deterministic algorithm. For timed exercises, faster responses carry more weight. Your scores are matched to one of 48 personality archetypes, then an AI model writes a personalized narrative.',
+                  },
+                },
+                {
+                  '@type': 'Question',
+                  name: 'How does Core-View handle privacy?',
+                  acceptedAnswer: {
+                    '@type': 'Answer',
+                    text: 'Core-View requires no account, no email, no cookies, and no tracking. Your session is linked to a random token that cannot be connected to your identity.',
+                  },
+                },
+              ],
+            }),
+          }}
+        />
 
         <SectionHeading>What is Core-View?</SectionHeading>
 

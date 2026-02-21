@@ -19,6 +19,7 @@ export function TimedRanking({ prompt, items, timeLimitMs, onComplete }: TimedRa
   const [phase, setPhase] = useState<'intro' | 'ranking'>('intro');
   const [ranked, setRanked] = useState<RankingItem[]>(items);
   const [dragIndex, setDragIndex] = useState<number | null>(null);
+  const dragIndexRef = useRef<number | null>(null);
   const [completed, setCompleted] = useState(false);
   const startTimeRef = useRef(Date.now());
   const listRef = useRef<HTMLDivElement>(null);
@@ -144,32 +145,35 @@ export function TimedRanking({ prompt, items, timeLimitMs, onComplete }: TimedRa
         {ranked.map((item, index) => (
           <motion.div
             key={item.id}
-            layout
+            layout={dragIndex === null}
             transition={{ type: 'spring', damping: 25, stiffness: 300 }}
             className={`flex items-center gap-3 p-4 rounded-lg border-2 bg-white select-none touch-none ${
               dragIndex === index ? 'border-accent shadow-lg opacity-50' : 'border-primary/10'
             }`}
             draggable
             onDragStart={(e) => {
+              dragIndexRef.current = index;
               setDragIndex(index);
               if ('dataTransfer' in e && (e as any).dataTransfer) {
                 (e as any).dataTransfer.effectAllowed = 'move';
                 (e as any).dataTransfer.setData('text/plain', '');
               }
             }}
-            onDragEnd={() => setDragIndex(null)}
+            onDragEnd={() => {
+              dragIndexRef.current = null;
+              setDragIndex(null);
+            }}
             onDragOver={(e) => {
               e.preventDefault();
-            }}
-            onDragEnter={(e) => {
-              e.preventDefault();
-              if (dragIndex !== null && dragIndex !== index) {
-                moveItem(dragIndex, index);
+              if (dragIndexRef.current !== null && dragIndexRef.current !== index) {
+                moveItem(dragIndexRef.current, index);
+                dragIndexRef.current = index;
                 setDragIndex(index);
               }
             }}
             onDrop={(e) => {
               e.preventDefault();
+              dragIndexRef.current = null;
               setDragIndex(null);
             }}
             onTouchStart={() => handleTouchStart(index)}

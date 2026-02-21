@@ -93,54 +93,83 @@ export default function SharedProfilePage() {
 
   const scores = profile.dimensions;
 
+  const containerVariants = {
+    hidden: {},
+    visible: {
+      transition: { staggerChildren: 0.1 },
+    },
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 16 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: { duration: 0.5, ease: 'easeOut' },
+    },
+  };
+
   return (
     <div className="min-h-dvh bg-paper pb-24">
       <div className="w-full max-w-[480px] mx-auto px-5">
         <LogoLink />
         <p className="text-center text-xs text-ink-muted pb-2">You're viewing someone's Core-View profile</p>
 
-        <ArchetypeHeader name={archetype.name} coreSentence={archetype.coreSentence} />
-        <RadarChart scores={scores} />
+        <motion.div variants={containerVariants} initial="hidden" animate="visible">
+          <motion.div variants={itemVariants}>
+            <ArchetypeHeader name={archetype.name} coreSentence={archetype.coreSentence} />
+          </motion.div>
 
-        {profileText && (
-          <div className="mt-8">
-            <ProfileText text={profileText} />
-          </div>
-        )}
+          <motion.div variants={itemVariants}>
+            <RadarChart scores={scores} />
+          </motion.div>
 
-        <div className="mt-8 flex flex-col gap-3">
-          {scores.map((score) => (
-            <DimensionCard
-              key={score.dimensionId}
-              score={score}
-              description={archetype.dimensionTexts[score.dimensionId]}
-            />
-          ))}
-        </div>
+          {profileText && (
+            <motion.div variants={itemVariants} className="mt-8">
+              <p className="text-xs font-medium text-ink-muted uppercase tracking-wider mb-2">Personal insight</p>
+              <div className="relative rounded-xl bg-white border border-paper-dark p-5 pl-7">
+                <div className="absolute left-0 top-4 bottom-4 w-1 rounded-full bg-accent/30" />
+                <ProfileText text={profileText} />
+              </div>
+            </motion.div>
+          )}
 
-        <div className="mt-8">
-          <h3 className="font-display text-lg text-ink mb-3">Strengths</h3>
-          <ul className="flex flex-col gap-2">
-            {archetype.strengths.map((s) => (
-              <li key={s} className="flex items-start gap-2 text-sm text-ink-soft">
-                <Sparkles size={16} className="text-accent mt-0.5 shrink-0" />
-                <span>{s}</span>
-              </li>
+          <motion.div variants={itemVariants} className="mt-8 flex flex-col gap-3">
+            {scores.map((score) => (
+              <motion.div key={score.dimensionId} variants={itemVariants}>
+                <DimensionCard score={score} description={archetype.dimensionTexts[score.dimensionId]} />
+              </motion.div>
             ))}
-          </ul>
-        </div>
+          </motion.div>
 
-        <div className="mt-6">
-          <h3 className="font-display text-lg text-ink mb-3">Watch-outs</h3>
-          <ul className="flex flex-col gap-2">
-            {archetype.watchOuts.map((w) => (
-              <li key={w} className="flex items-start gap-2 text-sm text-ink-soft">
-                <AlertTriangle size={16} className="text-warm mt-0.5 shrink-0" />
-                <span>{w}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
+          <motion.div variants={itemVariants} className="mt-8">
+            <h3 className="font-display text-lg text-ink mb-3">Strengths</h3>
+            <div className="flex flex-col gap-2.5">
+              {archetype.strengths.map((s) => (
+                <div key={s} className="flex items-start gap-3 p-3.5 rounded-xl bg-accent-glow border border-accent/10">
+                  <div className="w-8 h-8 rounded-full bg-accent/10 flex items-center justify-center shrink-0">
+                    <Sparkles size={16} className="text-accent" />
+                  </div>
+                  <span className="text-sm text-ink-soft pt-1">{s}</span>
+                </div>
+              ))}
+            </div>
+          </motion.div>
+
+          <motion.div variants={itemVariants} className="mt-6">
+            <h3 className="font-display text-lg text-ink mb-3">Watch-outs</h3>
+            <div className="flex flex-col gap-2.5">
+              {archetype.watchOuts.map((w) => (
+                <div key={w} className="flex items-start gap-3 p-3.5 rounded-xl bg-warm-light/50 border border-warm/10">
+                  <div className="w-8 h-8 rounded-full bg-warm/10 flex items-center justify-center shrink-0">
+                    <AlertTriangle size={16} className="text-warm" />
+                  </div>
+                  <span className="text-sm text-ink-soft pt-1">{w}</span>
+                </div>
+              ))}
+            </div>
+          </motion.div>
+        </motion.div>
 
         <Footer />
       </div>

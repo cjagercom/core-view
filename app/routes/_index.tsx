@@ -2,15 +2,20 @@ import { useState, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router';
 import type { MetaFunction } from 'react-router';
 import { Clock, ShieldOff, Link as LinkIcon, ArrowRight } from 'lucide-react';
+import { buildMeta } from '~/lib/seo';
 
-export const meta: MetaFunction = () => [
-  { title: "Core-View \u2014 Discover who you are beneath everything you've learned" },
-  {
-    name: 'description',
-    content:
-      "A 12-minute personality assessment that goes deeper than Myers-Briggs. Based on who you were as a child, not who you've become. No account needed.",
-  },
-];
+export const meta: MetaFunction = ({ matches }) => {
+  const parentMeta = matches.flatMap((match) => match.meta ?? []);
+  return buildMeta(
+    {
+      title: "Core-View \u2014 Discover who you are beneath everything you've learned",
+      description:
+        "A 12-minute personality assessment that goes deeper than Myers-Briggs. Based on who you were as a child, not who you've become. No account needed.",
+      url: '/',
+    },
+    parentMeta,
+  );
+};
 import { Button } from '~/components/ui/Button';
 import { Footer } from '~/components/ui/Footer';
 import { HomeSharePanel } from '~/components/ui/HomeSharePanel';
@@ -145,6 +150,20 @@ export default function LandingPage() {
             className="text-sm text-accent-mid hover:text-accent mt-3 inline-block underline underline-offset-2"
           >
             Learn more about our methodology
+          </Link>
+        </div>
+
+        {/* Archetype explorer */}
+        <div className="mt-8 w-full bg-paper-warm rounded-(--radius-card) p-6">
+          <p className="text-sm font-medium text-ink mb-1">Curious what archetypes exist?</p>
+          <p className="text-sm text-ink-soft leading-relaxed">
+            Explore all 48 personality archetypes across five dimensions — from The Quiet Strategist to The Catalyst.
+          </p>
+          <Link
+            to="/personality"
+            className="text-sm text-accent-mid hover:text-accent mt-3 inline-flex items-center gap-1 underline underline-offset-2"
+          >
+            Explore archetypes <ArrowRight size={14} />
           </Link>
         </div>
 
