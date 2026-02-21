@@ -40,6 +40,7 @@
       "routes/api.session.$id.share": "nodejs_eyJydW50aW1lIjoibm9kZWpzIn0",
       "routes/api.share.$token": "nodejs_eyJydW50aW1lIjoibm9kZWpzIn0",
       "routes/api.feedback.$token": "nodejs_eyJydW50aW1lIjoibm9kZWpzIn0",
+      "routes/api.manifest.$token": "nodejs_eyJydW50aW1lIjoibm9kZWpzIn0",
       "routes/api.analytics": "nodejs_eyJydW50aW1lIjoibm9kZWpzIn0",
       "routes/api.admin": "nodejs_eyJydW50aW1lIjoibm9kZWpzIn0"
     },
@@ -333,6 +334,15 @@
           "runtime": "nodejs"
         }
       },
+      "routes/api.manifest.$token": {
+        "id": "routes/api.manifest.$token",
+        "parentId": "root",
+        "file": "app/routes/api.manifest.$token.ts",
+        "path": "api/manifest/:token",
+        "config": {
+          "runtime": "nodejs"
+        }
+      },
       "routes/api.analytics": {
         "id": "routes/api.analytics",
         "parentId": "root",
@@ -562,6 +572,12 @@
         "file": "routes/api.feedback.$token.ts",
         "path": "api/feedback/:token"
       },
+      "routes/api.manifest.$token": {
+        "id": "routes/api.manifest.$token",
+        "parentId": "root",
+        "file": "routes/api.manifest.$token.ts",
+        "path": "api/manifest/:token"
+      },
       "routes/api.analytics": {
         "id": "routes/api.analytics",
         "parentId": "root",
@@ -719,6 +735,10 @@
           {
             "file": "routes/api.feedback.$token.ts",
             "path": "api/feedback/:token"
+          },
+          {
+            "file": "routes/api.manifest.$token.ts",
+            "path": "api/manifest/:token"
           },
           {
             "file": "routes/api.analytics.ts",
