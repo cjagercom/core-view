@@ -583,34 +583,39 @@ function JourneySection({
             state="done"
           />
         ) : (
-          <button
-            type="button"
-            onClick={() => setShowUnlockModal(true)}
-            className="relative rounded-2xl overflow-hidden p-5 text-left group cursor-pointer"
-            style={{
-              background:
-                'linear-gradient(135deg, var(--color-accent-glow) 0%, #fff 50%, var(--color-paper-warm) 100%)',
-            }}
-          >
-            <div className="absolute inset-0 rounded-2xl border-2 border-accent/20 group-hover:border-accent/40 transition-colors" />
-            <div className="relative z-10">
-              <div className="flex items-center gap-3 mb-2">
-                <div className="w-10 h-10 rounded-full bg-accent/10 flex items-center justify-center">
-                  <Sparkles size={20} className="text-accent" />
-                </div>
-                <div>
-                  <p className="font-display text-base text-ink">Deep-dive conversation</p>
-                  <p className="text-xs text-ink-muted">10 minutes with an AI coach</p>
-                </div>
-              </div>
-              <p className="text-sm text-ink-soft mt-2">
-                Refine your scores in a conversation that explores the patterns behind your answers.
-              </p>
-              <div className="mt-4 inline-flex items-center gap-2 text-sm font-bold text-accent group-hover:gap-3 transition-all">
-                Start deep-dive <ArrowRight size={16} />
-              </div>
+          <div className="flex gap-3">
+            <div className="w-7 h-7 rounded-full bg-accent/10 text-accent flex items-center justify-center text-xs font-medium border border-accent/30 shrink-0">
+              1
             </div>
-          </button>
+            <button
+              type="button"
+              onClick={() => setShowUnlockModal(true)}
+              className="flex-1 relative rounded-2xl overflow-hidden p-5 text-left group cursor-pointer"
+              style={{
+                background:
+                  'linear-gradient(135deg, var(--color-accent-glow) 0%, #fff 50%, var(--color-paper-warm) 100%)',
+              }}
+            >
+              <div className="absolute inset-0 rounded-2xl border-2 border-accent/20 group-hover:border-accent/40 transition-colors" />
+              <div className="relative z-10">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-10 h-10 rounded-full bg-accent/10 flex items-center justify-center">
+                    <Sparkles size={20} className="text-accent" />
+                  </div>
+                  <div>
+                    <p className="font-display text-base text-ink">Deep-dive conversation</p>
+                    <p className="text-xs text-ink-muted">10 minutes with an AI coach</p>
+                  </div>
+                </div>
+                <p className="text-sm text-ink-soft mt-2">
+                  Refine your scores in a conversation that explores the patterns behind your answers.
+                </p>
+                <div className="mt-4 inline-flex items-center gap-2 text-sm font-bold text-accent group-hover:gap-3 transition-all">
+                  Start deep-dive <ArrowRight size={16} />
+                </div>
+              </div>
+            </button>
+          </div>
         )}
 
         {/* Step 2: Collect feedback */}
@@ -652,7 +657,7 @@ function JourneySection({
 
         {/* Show feedback invite inline when it's the right time */}
         {!hasFeedback && (
-          <div className="ml-9">
+          <div className="ml-10 -mt-2">
             <FeedbackInvite
               sessionId={token}
               feedbackToken={session.feedback_token}
@@ -681,7 +686,7 @@ function JourneySection({
         />
 
         {/* Step 4: Finalize */}
-        <div className="mt-3 pt-3 border-t border-primary/5">
+        <div className="mt-3 pb-3 border-b border-primary/5">
           <JourneyStep
             number={4}
             title="Finalize your profile"
@@ -692,7 +697,7 @@ function JourneySection({
             }
             state={allDone ? 'active' : 'upcoming'}
           />
-          <div className="ml-9 mt-2">
+          <div className="ml-10 mt-2">
             {showFinalizeConfirm ? (
               <div className="flex flex-col gap-2">
                 <p className="text-sm text-ink font-medium">

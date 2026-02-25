@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router';
 import { rankingSets } from '~/data/questions/rankings';
 import { useSessionDispatch, usePersist } from '~/lib/session-store';
 import { TimedRanking } from '~/components/wizard/TimedRanking';
-import { StepTransition } from '~/components/wizard/StepTransition';
 import { accumulateRankingScores, createAccumulator } from '~/engine/scoring';
 import type { DimensionId } from '~/types/questions';
 import type { SessionResponse } from '~/types/session';
@@ -65,14 +64,12 @@ export default function RankingStep() {
   const rankingSet = rankingSets[rankingIndex];
 
   return (
-    <StepTransition stepKey={`ranking-${rankingIndex}`}>
-      <TimedRanking
-        key={rankingSet.id}
-        prompt={rankingSet.prompt}
-        items={rankingSet.items}
-        timeLimitMs={rankingSet.timeLimitMs}
-        onComplete={handleComplete}
-      />
-    </StepTransition>
+    <TimedRanking
+      key={rankingSet.id}
+      prompt={rankingSet.prompt}
+      items={rankingSet.items}
+      timeLimitMs={rankingSet.timeLimitMs}
+      onComplete={handleComplete}
+    />
   );
 }

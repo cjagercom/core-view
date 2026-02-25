@@ -67,7 +67,7 @@ export function FeedbackInvite({
 
   if (!feedbackEnabled && !token) {
     return (
-      <div className="mt-8 p-5 rounded-xl bg-white border border-primary/10">
+      <div className="mt-2 p-5 rounded-xl bg-white border border-primary/10">
         <h3 className="text-lg font-medium text-primary mb-2">Get feedback</h3>
         <p className="text-sm text-muted mb-4">
           Curious how others see you? Share a short questionnaire with people who know you. Their answers are anonymous
@@ -81,7 +81,7 @@ export function FeedbackInvite({
   }
 
   return (
-    <div className="mt-8 p-5 rounded-xl bg-white border border-primary/10">
+    <div className="mt-2 p-5 rounded-xl bg-white border border-primary/10">
       <h3 className="text-lg font-medium text-primary mb-2">Feedback</h3>
 
       {feedbackCount > 0 && (
